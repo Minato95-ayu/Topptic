@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --background: #0f0f0f;
+  --foreground: #f5f5f5;
+  --primary: #3b82f6;
+  --accent: #06b6d4;
+}
+
+* {
+  @apply antialiased;
+}
+
+html {
+  @apply scroll-smooth;
+}
+
+body {
+  @apply bg-slate-950 text-slate-50 font-sans;
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a2e 100%);
+}
+
+.editor-wrapper {
+  @apply h-full w-full flex flex-col overflow-hidden;
+}
+
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-900/50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 rounded-full hover:bg-slate-600 transition-colors duration-200;
+}
+
+.glass {
+  @apply bg-slate-900/40 backdrop-blur-xl border border-slate-700/30;
+}
+
+.hover-lift {
+  @apply transition-all duration-200;
+}
+
+.hover-lift:hover {
+  @apply -translate-y-0.5 shadow-lg shadow-blue-500/20;
+}
+
+.gradient-text {
+  @apply bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent;
+}
+
+.btn-primary {
+  @apply px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium transition-all duration-200 hover:shadow-lg hover:shadow-blue-500/50 active:scale-95;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 rounded-lg bg-slate-800 text-slate-200 font-medium border border-slate-700 transition-all duration-200 hover:bg-slate-700 active:scale-95;
+}
+
+.btn-ghost {
+  @apply px-3 py-2 rounded-lg text-slate-400 transition-all duration-200 hover:bg-slate-800 hover:text-slate-300;
+}
+
+.input-base {
+  @apply w-full px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-50 placeholder-slate-500 transition-all duration-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50;
+}
+
+.badge-success {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-500/20 text-green-400 text-xs font-medium border border-green-500/30;
+}
+
+.badge-warning {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-medium border border-yellow-500/30;
+}
+
+.badge-error {
+  @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-medium border border-red-500/30;
+}
+
+.custom-scrollbar {
+  @apply overflow-y-auto;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  @apply w-1.5;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-700/40 rounded-full hover:bg-slate-600/60;
+}

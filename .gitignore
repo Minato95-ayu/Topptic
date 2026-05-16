@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+dist
+target
+src-tauri/target
+
+.env
+.env.local
+.env.*.local
+
+*.log
+dev-server.out.log
+dev-server.err.log
+
+.DS_Store
+Thumbs.db
