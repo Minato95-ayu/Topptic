@@ -10,7 +10,9 @@ import type {
   FileEntry,
   FileReadRequest,
   FileWriteRequest,
-  Project
+  Project,
+  ExportRequest,
+  ExportResponse
 } from '@/app/lib/types';
 
 async function tauriInvoke<T>(command: string, args?: Record<string, unknown>): Promise<T> {
