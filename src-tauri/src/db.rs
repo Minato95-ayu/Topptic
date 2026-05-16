@@ -116,7 +116,17 @@ pub fn save_ai_history(
 
 fn open_connection(app: &AppHandle) -> Result<Connection, String> {
     let path = database_path(app)?;
-    Connection::open(path).map_err(|error| error.to_string())
+    let connection = Connection::open(path).map_err(|error| error.to_string())?;
+
+    connection
+        .execute_batch(
+            "PRAGMA journal_mode=WAL;
+             PRAGMA synchronous=NORMAL;
+             PRAGMA busy_timeout=5000;",
+        )
+        .map_err(|error| error.to_string())?;
+
+    Ok(connection)
 }
 
 fn database_path(app: &AppHandle) -> Result<PathBuf, String> {

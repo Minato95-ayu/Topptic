@@ -100,11 +100,55 @@ fn run_command(
     args: &[String],
     working_dir: &Path,
 ) -> Result<std::process::Output, String> {
-    Command::new(command)
+    let mut child = Command::new(command)
         .args(args)
         .current_dir(working_dir)
-        .output()
-        .map_err(|error| error.to_string())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .map_err(|error| error.to_string())?;
+
+    let mut stdout = child.stdout.take().unwrap();
+    let mut stderr = child.stderr.take().unwrap();
+
+    let stdout_handle = std::thread::spawn(move || {
+        let mut out = Vec::new();
+        std::io::Read::read_to_end(&mut stdout, &mut out).unwrap_or_default();
+        out
+    });
+
+    let stderr_handle = std::thread::spawn(move || {
+        let mut err = Vec::new();
+        std::io::Read::read_to_end(&mut stderr, &mut err).unwrap_or_default();
+        err
+    });
+
+    let mut status = None;
+    let start_time = std::time::Instant::now();
+    let timeout = std::time::Duration::from_secs(120); // 2 minute timeout
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(s)) => {
+                status = Some(s);
+                break;
+            }
+            Ok(None) => {
+                if start_time.elapsed() > timeout {
+                    let _ = child.kill();
+                    return Err("Command timed out after 2 minutes.".to_string());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(e) => return Err(format!("Failed to wait on child: {}", e)),
+        }
+    }
+
+    Ok(std::process::Output {
+        status: status.unwrap(),
+        stdout: stdout_handle.join().unwrap_or_default(),
+        stderr: stderr_handle.join().unwrap_or_default(),
+    })
 }
 
 fn write_code(path: &Path, code: &str) -> Result<(), String> {

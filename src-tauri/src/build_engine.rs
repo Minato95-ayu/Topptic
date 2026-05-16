@@ -45,7 +45,28 @@ pub fn export_project(app: AppHandle, request: ExportRequest) -> Result<ExportRe
         }
     });
 
-    let status = child.wait().map_err(|e| format!("Failed to wait on child: {}", e))?;
+    let mut status = None;
+    let start_time = std::time::Instant::now();
+    let timeout = std::time::Duration::from_secs(300); // 5 minute timeout
+
+    loop {
+        match child.try_wait() {
+            Ok(Some(s)) => {
+                status = Some(s);
+                break;
+            }
+            Ok(None) => {
+                if start_time.elapsed() > timeout {
+                    let _ = child.kill(); // Kills child and closes stdout/stderr, terminating reader threads
+                    return Err("Compilation timed out after 5 minutes.".to_string());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(500));
+            }
+            Err(e) => return Err(format!("Failed to wait on child: {}", e)),
+        }
+    }
+
+    let status = status.unwrap();
 
     if !status.success() {
         return Err("Compilation failed. Check logs for details.".to_string());
