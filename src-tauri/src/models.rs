@@ -114,3 +114,18 @@ pub struct BuildResponse {
     pub healed: bool,
     pub final_code: Option<String>,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportRequest {
+    pub project_path: String,
+    pub target_os: String,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportResponse {
+    pub success: bool,
+    pub message: String,
+    pub output_path: String,
+}

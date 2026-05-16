@@ -125,3 +125,18 @@ export async function formatCode(path: string, content: string): Promise<string>
 export async function runBuild(request: BuildRequest): Promise<BuildResponse> {
   return tauriInvoke<BuildResponse>('run_build', { request });
 }
+
+export async function exportProject(request: ExportRequest): Promise<ExportResponse> {
+  return tauriInvoke<ExportResponse>('export_project', { request });
+}
+
+export async function listenToExportLogs(callback: (log: string) => void) {
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+    return () => {};
+  }
+  const { listen } = await import('@tauri-apps/api/event');
+  const unlisten = await listen<string>('export-log', (event) => {
+    callback(event.payload);
+  });
+  return unlisten;
+}

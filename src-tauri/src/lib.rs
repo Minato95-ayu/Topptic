@@ -1,4 +1,5 @@
 mod ai;
+mod build_engine;
 mod build_runner;
 mod commands;
 mod db;
@@ -23,7 +24,8 @@ pub fn run() {
             commands::ai_suggest,
             commands::ai_chat,
             commands::format_code,
-            commands::run_build
+            commands::run_build,
+            commands::export_project
         ])
         .run(tauri::generate_context!())
         .expect("error while running Topptic");

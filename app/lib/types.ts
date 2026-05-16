@@ -99,3 +99,14 @@ export interface BuildResponse {
   healed: boolean;
   finalCode: string | null;
 }
+
+export interface ExportRequest {
+  projectPath: string;
+  targetOs: string;
+}
+
+export interface ExportResponse {
+  success: boolean;
+  message: string;
+  outputPath: string;
+}

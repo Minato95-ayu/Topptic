@@ -72,3 +72,8 @@ pub fn format_code(request: FormatCodeRequest) -> String {
 pub fn run_build(request: BuildRequest) -> Result<BuildResponse, String> {
     build_runner::run_build(request)
 }
+
+#[tauri::command]
+pub fn export_project(app: AppHandle, request: ExportRequest) -> Result<ExportResponse, String> {
+    crate::build_engine::export_project(app, request)
+}
