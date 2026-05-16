@@ -79,7 +79,7 @@ pub fn run_build(request: BuildRequest) -> Result<BuildResponse, String> {
             });
         };
 
-        let code_for_fix = original_code
+        let code_for_fix = final_code
             .as_deref()
             .ok_or_else(|| "source code is required for self-healing builds".to_string())?;
         let fixed_code = ai::fix_compilation_error(

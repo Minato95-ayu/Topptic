@@ -28,7 +28,15 @@ pub fn write_file(request: FileWriteRequest) -> Result<(), String> {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
 
-    fs::write(path, request.content).map_err(|error| error.to_string())
+    if path.exists() {
+        let mut backup_path = path.clone();
+        backup_path.set_extension("bak");
+        let _ = fs::copy(&path, backup_path);
+    }
+
+    let tmp_path = path.with_extension("tmp");
+    fs::write(&tmp_path, request.content).map_err(|error| error.to_string())?;
+    fs::rename(&tmp_path, path).map_err(|error| error.to_string())
 }
 
 pub fn list_files(path: Option<String>) -> Result<Vec<FileEntry>, String> {
