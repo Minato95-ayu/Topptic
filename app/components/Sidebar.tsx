@@ -1,19 +1,18 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { NavItem } from '@/app/components/sidebar/NavItem';
 import { ProjectsList } from '@/app/components/sidebar/ProjectsList';
-import { getBackendStatus } from '@/app/lib/backend';
+import { FileExplorer } from '@/app/components/sidebar/FileExplorer';
 import { Icons } from '@/app/lib/icons';
-import type { BackendStatus } from '@/app/lib/types';
+import { useApp } from '@/app/providers';
 
 export default function Sidebar() {
-  const [activeNav, setActiveNav] = useState('projects');
-  const [status, setStatus] = useState<BackendStatus | null>(null);
-
-  useEffect(() => {
-    void getBackendStatus().then(setStatus);
-  }, []);
+  const { 
+    activeNav, 
+    setActiveNav, 
+    backendStatus, 
+    projects, 
+    setSelectedProjectId,
+    selectedProjectId
+  } = useApp();
 
   const navItems = [
     { id: 'projects', label: 'Projects', icon: <Icons.FileText /> },
@@ -47,15 +46,28 @@ export default function Sidebar() {
       </nav>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <ProjectsList />
+        <ProjectsList 
+          projects={projects} 
+          onSelectProject={(id) => {
+            setSelectedProjectId(id);
+            setActiveNav('projects');
+          }} 
+        />
+        
+        {activeNav === 'projects' && selectedProjectId && (
+          <div className="mt-2 border-t border-slate-700/30 pt-2">
+            <FileExplorer onFileSelect={setSelectedFilePath} />
+          </div>
+        )}
       </div>
 
       <div className="px-4 py-3 border-t border-slate-700/30 bg-slate-800/20">
         <div className="flex items-center gap-2 text-xs text-slate-400">
-          <div className={`w-2 h-2 rounded-full shadow-lg ${status?.tauri ? 'bg-green-500 shadow-green-500/50' : 'bg-yellow-500 shadow-yellow-500/40'}`} />
-          <span>Backend: {status?.tauri ? 'Tauri' : 'Preview'}</span>
+          <div className={`w-2 h-2 rounded-full shadow-lg ${backendStatus?.tauri ? 'bg-green-500 shadow-green-500/50' : 'bg-yellow-500 shadow-yellow-500/40'}`} />
+          <span>Backend: {backendStatus?.tauri ? 'Tauri' : 'Preview'}</span>
         </div>
-        <p className="text-xs text-slate-500 mt-1">AI: {status?.aiEngine ?? 'checking'}</p>
+        <p className="text-xs text-slate-500 mt-1">AI: {backendStatus?.aiEngine ?? 'checking'}</p>
+        <p className="text-[10px] text-slate-600 truncate mt-0.5">{backendStatus?.workspace || 'No workspace'}</p>
       </div>
     </aside>
   );

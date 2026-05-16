@@ -7,16 +7,12 @@ import { Icons } from '@/app/lib/icons';
 import type { Project } from '@/app/lib/types';
 
 interface ProjectsListProps {
+  projects: Project[];
   onSelectProject?: (id: string) => void;
 }
 
-export function ProjectsList({ onSelectProject }: ProjectsListProps) {
+export function ProjectsList({ projects, onSelectProject }: ProjectsListProps) {
   const [expanded, setExpanded] = useState(true);
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  useEffect(() => {
-    void listProjects().then(setProjects);
-  }, []);
 
   return (
     <div className="px-4 py-3">
