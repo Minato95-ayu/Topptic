@@ -1,12 +1,16 @@
+'use client';
+
+import { useState } from 'react';
 import { ChatPanel } from '@/app/components/ai/ChatPanel';
 import { EditorPanel } from '@/app/components/editor/EditorPanel';
 import { BuildPanel } from '@/app/components/build/BuildPanel';
 import { SettingsPanel } from '@/app/components/settings/SettingsPanel';
+import { Dashboard } from '@/app/components/dashboard/Dashboard';
 import { Icons } from '@/app/lib/icons';
 import { useApp } from '@/app/providers';
 
 export default function Home() {
-  const { activeNav } = useApp();
+  const { activeNav, selectedProjectId } = useApp();
   const [showChat, setShowChat] = useState(true);
 
   const renderActivePanel = () => {
@@ -23,7 +27,7 @@ export default function Home() {
         );
       case 'projects':
       default:
-        return <EditorPanel />;
+        return selectedProjectId ? <EditorPanel /> : <Dashboard />;
     }
   };
 

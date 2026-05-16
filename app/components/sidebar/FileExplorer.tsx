@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Icons } from '@/app/lib/icons';
 import { listFiles } from '@/app/lib/backend';
+import { useApp } from '@/app/providers';
 import type { FileEntry } from '@/app/lib/types';
 
 interface FileExplorerProps {
@@ -14,6 +15,7 @@ export function FileExplorer({ currentPath = '.', onFileSelect }: FileExplorerPr
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { selectedFilePath } = useApp();
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -38,41 +40,48 @@ export function FileExplorer({ currentPath = '.', onFileSelect }: FileExplorerPr
   }, [currentPath]);
 
   if (loading && files.length === 0) {
-    return <div className="px-6 py-4 text-xs text-slate-500 animate-pulse">Scanning workspace...</div>;
+    return <div className="px-6 py-4 text-xs text-slate-500 animate-pulse flex items-center gap-2"><Icons.RefreshCw className="w-3 h-3 animate-spin" /> Scanning workspace...</div>;
   }
 
   if (error) {
-    return <div className="px-6 py-4 text-xs text-red-500">{error}</div>;
+    return <div className="px-6 py-4 text-xs text-red-500 flex items-center gap-2"><Icons.AlertCircle className="w-3 h-3" /> {error}</div>;
   }
 
   return (
-    <div className="py-2">
-      <div className="px-4 py-1 flex items-center justify-between group">
-        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Workspace</span>
-        <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-          <Icons.Plus className="w-3 h-3 text-slate-500 hover:text-slate-300" />
+    <div className="py-2 flex flex-col h-full">
+      <div className="px-4 py-2 flex items-center justify-between group">
+        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Explorer</span>
+        <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-800 rounded">
+          <Icons.Plus className="w-3 h-3 text-slate-400 hover:text-slate-200" />
         </button>
       </div>
       
-      <div className="mt-1">
+      <div className="mt-1 flex-1 overflow-y-auto custom-scrollbar">
         {files.length === 0 && !loading && (
-          <div className="px-6 py-2 text-xs text-slate-600 italic">No files found</div>
+          <div className="px-6 py-2 text-xs text-slate-600 italic">Workspace is empty</div>
         )}
         
-        {files.map((file) => (
-          <button
-            key={file.path}
-            onClick={() => !file.isDirectory && onFileSelect?.(file.path)}
-            className="w-full flex items-center gap-2 px-6 py-1.5 text-sm text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 transition-colors group"
-          >
-            {file.isDirectory ? (
-              <Icons.Folder className="w-4 h-4 text-blue-400/70" />
-            ) : (
-              <Icons.FileText className="w-4 h-4 text-slate-500 group-hover:text-blue-400/70" />
-            )}
-            <span className="truncate">{file.name}</span>
-          </button>
-        ))}
+        {files.map((file) => {
+          const isSelected = selectedFilePath === file.path;
+          return (
+            <button
+              key={file.path}
+              onClick={() => !file.isDirectory && onFileSelect?.(file.path)}
+              className={`w-full flex items-center gap-2 px-6 py-1.5 text-sm transition-all group border-l-2 ${
+                isSelected 
+                  ? 'border-blue-500 bg-blue-500/10 text-blue-100' 
+                  : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+              }`}
+            >
+              {file.isDirectory ? (
+                <Icons.Folder className={`w-4 h-4 ${isSelected ? 'text-blue-400' : 'text-slate-500 group-hover:text-blue-400/70'}`} />
+              ) : (
+                <Icons.FileText className={`w-4 h-4 ${isSelected ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+              )}
+              <span className="truncate">{file.name}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

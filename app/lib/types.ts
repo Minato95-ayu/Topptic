@@ -12,6 +12,7 @@ export interface Project {
 export interface CreateProjectRequest {
   name: string;
   path: string;
+  language: string;
 }
 
 export interface EditorTab {

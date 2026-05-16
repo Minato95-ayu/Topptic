@@ -11,7 +11,8 @@ export default function Sidebar() {
     backendStatus, 
     projects, 
     setSelectedProjectId,
-    selectedProjectId
+    selectedProjectId,
+    setSelectedFilePath
   } = useApp();
 
   const navItems = [
