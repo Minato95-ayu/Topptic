@@ -40,7 +40,7 @@ const MessageContent = ({ content, onApply }: { content: string, onApply: (code:
 };
 
 export function ChatPanel() {
-  const { fileContent, selectedFilePath, setFileContent } = useApp();
+  const { fileContent, selectedFilePath, setFileContent, getLiveContent, setPendingDiff } = useApp();
   const [messages, setMessages] = useState<AIChatMessage[]>([
     {
       id: '1',
@@ -72,25 +72,144 @@ export function ChatPanel() {
     setInput('');
     setIsLoading(true);
 
-    const response = await sendChatMessage({ 
-      message: content,
-      codeContext: fileContent,
-      filePath: selectedFilePath || undefined
-    });
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: response.message,
-        timestamp: new Date().toISOString()
+    // Pre-insert an empty assistant message to stream into
+    const assistantMessageId = crypto.randomUUID();
+    const newAssistantMessage: AIChatMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages((prev) => [...prev, newAssistantMessage]);
+
+    const updateAssistantMessage = (newText: string) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === assistantMessageId ? { ...msg, content: newText } : msg
+        )
+      );
+    };
+
+    // Reconstruct context prompt matching Tauri backend standards
+    let promptContext = "You are Topptic's offline coding assistant. Be concise, practical, and return actionable code guidance.";
+    if (selectedFilePath) {
+      promptContext += `\n\nCurrent file: ${selectedFilePath}`;
+    }
+    const currentCode = getLiveContent();
+    if (currentCode) {
+      promptContext += `\n\nCurrent Monaco editor code:\n\`\`\`\n${currentCode}\n\`\`\``;
+    }
+    promptContext += `\n\nUser request:\n${content}`;
+
+    let streamCompleted = false;
+
+    // Mode 1: Try Direct Local Ollama HTTP fetch with real-time SSE streaming
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200); // Fail fast to typewriter fallback if port closed
+
+      const response = await fetch('http://127.0.0.1:11434/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama3.2',
+          prompt: promptContext,
+          stream: true
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok && response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let accumulatedResponse = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              if (parsed.response) {
+                accumulatedResponse += parsed.response;
+                updateAssistantMessage(accumulatedResponse);
+              }
+            } catch (err) {
+              console.warn('Error parsing JSON line:', err);
+            }
+          }
+        }
+
+        if (buffer.trim()) {
+          try {
+            const parsed = JSON.parse(buffer);
+            if (parsed.response) {
+              accumulatedResponse += parsed.response;
+              updateAssistantMessage(accumulatedResponse);
+            }
+          } catch {}
+        }
+
+        if (accumulatedResponse.trim()) {
+          streamCompleted = true;
+        }
       }
-    ]);
-    setIsLoading(false);
+    } catch (e) {
+      console.log('Direct Ollama connection not active or blocked. Falling back to typewriter driver.', e);
+    }
+
+    // Mode 2: High-fidelity visual Typewriter streaming fallback over Tauri Rust channels
+    if (!streamCompleted) {
+      try {
+        const response = await sendChatMessage({ 
+          message: content,
+          codeContext: currentCode,
+          filePath: selectedFilePath || undefined
+        });
+
+        const text = response.message;
+        const words = text.split(/(\s+)/);
+        let currentIndex = 0;
+        let currentText = '';
+
+        const typeNextWord = () => {
+          if (currentIndex < words.length) {
+            currentText += words[currentIndex];
+            updateAssistantMessage(currentText);
+            currentIndex++;
+            setTimeout(typeNextWord, 12);
+          } else {
+            setIsLoading(false);
+          }
+        };
+
+        typeNextWord();
+      } catch (error) {
+        updateAssistantMessage(`System Error: Failed to contact local AI assistant. (${String(error)})`);
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+    }
   };
 
   const handleApplyCode = (code: string) => {
-    setFileContent(code);
+    if (!selectedFilePath) return;
+    setPendingDiff({
+      original: getLiveContent(),
+      modified: code,
+      filePath: selectedFilePath
+    });
   };
 
   return (

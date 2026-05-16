@@ -17,12 +17,30 @@ const MonacoEditor = dynamic(() => import('@monaco-editor/react').then((mod) => 
   loading: () => <div className="w-full h-full bg-slate-800 flex items-center justify-center font-mono text-sm text-slate-500">Loading Topptic Editor...</div>
 });
 
+const MonacoDiffEditor = dynamic(() => import('@monaco-editor/react').then((mod) => mod.DiffEditor), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-slate-800 flex items-center justify-center font-mono text-sm text-slate-500">Loading Topptic Diff Preview...</div>
+});
+
 export function EditorPanel() {
-  const { selectedFilePath, fileContent, setFileContent, saveCurrentFile, selectedProjectId, projects } = useApp();
+  const { 
+    selectedFilePath, 
+    fileContent, 
+    setFileContent, 
+    saveCurrentFile, 
+    selectedProjectId, 
+    projects,
+    getLiveContent,
+    setLiveContent,
+    pendingDiff,
+    acceptPendingDiff,
+    rejectPendingDiff
+  } = useApp();
   const [status, setStatus] = useState('Ready');
   const [isBuilding, setIsBuilding] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [buildState, setBuildState] = useState<'idle' | 'compiling' | 'healing' | 'success' | 'error'>('idle');
+  const [isDirty, setIsDirty] = useState(false);
 
   // Export State
   const [showExportModal, setShowExportModal] = useState(false);
@@ -32,6 +50,10 @@ export function EditorPanel() {
   const [exportResult, setExportResult] = useState<{ success: boolean; message: string; path?: string } | null>(null);
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
+
+  useEffect(() => {
+    setIsDirty(false);
+  }, [selectedFilePath, fileContent]);
 
   useEffect(() => {
     if (typeof navigator !== 'undefined') {
@@ -46,9 +68,16 @@ export function EditorPanel() {
   const handleFormat = async () => {
     if (!selectedFilePath) return;
     setStatus('Formatting...');
-    const formatted = await formatCode(selectedFilePath, fileContent);
-    setFileContent(formatted);
-    setStatus('Formatted');
+    try {
+      const currentVal = getLiveContent();
+      const formatted = await formatCode(selectedFilePath, currentVal);
+      setFileContent(formatted);
+      setLiveContent(formatted);
+      setIsDirty(false);
+      setStatus('Formatted');
+    } catch {
+      setStatus('Error formatting');
+    }
   };
 
   const handleSave = async () => {
@@ -56,6 +85,7 @@ export function EditorPanel() {
     setStatus('Saving...');
     try {
       await saveCurrentFile();
+      setIsDirty(false);
       setStatus('Saved');
     } catch {
       setStatus('Error saving file');
@@ -165,7 +195,7 @@ export function EditorPanel() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
-      <TabBar tabs={[{ id: '1', name: selectedFilePath.split('/').pop() || '', isDirty: false }]} activeTabId="1" />
+      <TabBar tabs={[{ id: '1', name: selectedFilePath.split('/').pop() || '', isDirty }]} activeTabId="1" />
       <div className="flex items-center justify-between border-b border-slate-700/30 bg-slate-900/30 px-4 py-2">
         <div className="flex items-center gap-2">
           <Icons.FileText className="w-4 h-4 text-blue-400/70" />
@@ -174,13 +204,13 @@ export function EditorPanel() {
         <div className="flex items-center gap-4">
           <span className="text-[10px] uppercase tracking-widest text-slate-600 font-bold">{status}</span>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={handleFormat}>
+            <Button variant="ghost" size="sm" onClick={handleFormat} disabled={!!pendingDiff}>
               Format
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleSave}>
+            <Button variant="secondary" size="sm" onClick={handleSave} disabled={!!pendingDiff}>
               Save
             </Button>
-            <Button size="sm" onClick={handleBuild} disabled={isBuilding} className="flex items-center gap-2">
+            <Button size="sm" onClick={handleBuild} disabled={isBuilding || !!pendingDiff} className="flex items-center gap-2">
                {isBuilding ? (
                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                ) : (
@@ -191,6 +221,7 @@ export function EditorPanel() {
             <Button 
               size="sm" 
               onClick={() => setShowExportModal(true)} 
+              disabled={!!pendingDiff}
               className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-lg shadow-purple-500/20 border-0"
             >
                <Icons.Download className="w-3 h-3" />
@@ -199,30 +230,89 @@ export function EditorPanel() {
           </div>
         </div>
       </div>
+
+      {pendingDiff && (
+        <div className="bg-emerald-950/40 border-b border-emerald-500/30 px-6 py-3 flex items-center justify-between animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div>
+              <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <Icons.Brain className="w-4 h-4 text-emerald-400 animate-bounce" />
+                Safe AI Apply Review
+              </h4>
+              <p className="text-xs text-slate-400">Comparing original code (left) with AI suggested changes (right). Verify modifications before applying.</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={rejectPendingDiff} 
+              variant="ghost" 
+              className="text-slate-300 hover:text-white hover:bg-slate-800 border-slate-700 hover:border-slate-600 font-semibold"
+            >
+              Reject
+            </Button>
+            <Button 
+              onClick={acceptPendingDiff} 
+              className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-500/20 font-semibold"
+            >
+              Accept & Apply
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-hidden relative flex flex-col">
         <div className="flex-1 relative">
-          <MonacoEditor
-            value={fileContent}
-            language={getLanguageFromPath(selectedFilePath)}
-            theme="vs-dark"
-            onChange={(value) => setFileContent(value ?? '')}
-            onMount={(editor, monaco) => {
-              editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-                void handleSave();
-              });
-            }}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              fontFamily: 'JetBrains Mono, Fira Code, monospace',
-              automaticLayout: true,
-              padding: { top: 16 },
-              lineNumbersMinChars: 3,
-              glyphMargin: false,
-              folding: true,
-              lineDecorationsWidth: 10,
-            }}
-          />
+          {pendingDiff ? (
+            <MonacoDiffEditor
+              original={pendingDiff.original}
+              modified={pendingDiff.modified}
+              language={getLanguageFromPath(selectedFilePath)}
+              theme="vs-dark"
+              options={{
+                readOnly: true,
+                originalEditable: false,
+                minimap: { enabled: false },
+                fontSize: 14,
+                fontFamily: 'JetBrains Mono, Fira Code, monospace',
+                automaticLayout: true,
+                padding: { top: 16 },
+                lineNumbersMinChars: 3,
+                folding: true,
+                renderSideBySide: true,
+              }}
+            />
+          ) : (
+            <MonacoEditor
+              value={fileContent}
+              language={getLanguageFromPath(selectedFilePath)}
+              theme="vs-dark"
+              onChange={(value) => {
+                const val = value ?? '';
+                setLiveContent(val);
+                const nextDirty = val !== fileContent;
+                if (nextDirty !== isDirty) {
+                  setIsDirty(nextDirty);
+                }
+              }}
+              onMount={(editor, monaco) => {
+                editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+                  void handleSave();
+                });
+              }}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14,
+                fontFamily: 'JetBrains Mono, Fira Code, monospace',
+                automaticLayout: true,
+                padding: { top: 16 },
+                lineNumbersMinChars: 3,
+                glyphMargin: false,
+                folding: true,
+                lineDecorationsWidth: 10,
+              }}
+            />
+          )}
         </div>
 
         {/* Existing Build Tracker */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { getBackendStatus, listProjects, readFile, writeFile } from '@/app/lib/backend';
 import type { BackendStatus, Project } from '@/app/lib/types';
 
@@ -17,6 +17,16 @@ interface AppContextType {
   fileContent: string;
   setFileContent: (content: string) => void;
   saveCurrentFile: () => Promise<void>;
+  
+  // High-performance isolated editor states
+  getLiveContent: () => string;
+  setLiveContent: (content: string) => void;
+
+  // Safe AI Apply UX states
+  pendingDiff: { original: string; modified: string; filePath: string } | null;
+  setPendingDiff: (diff: { original: string; modified: string; filePath: string } | null) => void;
+  acceptPendingDiff: () => Promise<void>;
+  rejectPendingDiff: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -28,6 +38,29 @@ export function Providers({ children }: { children: ReactNode }) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null);
   const [fileContent, setFileContent] = useState('');
+  
+  // Monaco live isolated state
+  const liveContentRef = useRef('');
+
+  // Safe AI Apply state
+  const [pendingDiff, setPendingDiff] = useState<{ original: string; modified: string; filePath: string } | null>(null);
+
+  const getLiveContent = () => liveContentRef.current;
+  const setLiveContent = (content: string) => {
+    liveContentRef.current = content;
+  };
+
+  const acceptPendingDiff = async () => {
+    if (!pendingDiff) return;
+    const modified = pendingDiff.modified;
+    setFileContent(modified);
+    liveContentRef.current = modified;
+    setPendingDiff(null);
+  };
+
+  const rejectPendingDiff = () => {
+    setPendingDiff(null);
+  };
 
   const refreshProjects = async () => {
     try {
@@ -44,15 +77,25 @@ export function Providers({ children }: { children: ReactNode }) {
   const saveCurrentFile = async () => {
     if (!selectedFilePath) return;
     try {
-      await writeFile({ path: selectedFilePath, content: fileContent });
+      const currentContent = liveContentRef.current;
+      await writeFile({ path: selectedFilePath, content: currentContent });
+      // Update baseline state to synchronize UI/dirty state
+      setFileContent(currentContent);
     } catch (error) {
       console.error('Failed to save file:', error);
     }
   };
 
   useEffect(() => {
+    setPendingDiff(null); // Reset pending diff when switching files
     if (selectedFilePath) {
-      void readFile({ path: selectedFilePath }).then(setFileContent);
+      void readFile({ path: selectedFilePath }).then((content) => {
+        setFileContent(content);
+        liveContentRef.current = content;
+      });
+    } else {
+      setFileContent('');
+      liveContentRef.current = '';
     }
   }, [selectedFilePath]);
 
@@ -86,6 +129,12 @@ export function Providers({ children }: { children: ReactNode }) {
         fileContent,
         setFileContent,
         saveCurrentFile,
+        getLiveContent,
+        setLiveContent,
+        pendingDiff,
+        setPendingDiff,
+        acceptPendingDiff,
+        rejectPendingDiff,
       }}
     >
       {children}
