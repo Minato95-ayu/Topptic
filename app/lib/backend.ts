@@ -6,6 +6,7 @@ import type {
   BackendStatus,
   BuildRequest,
   BuildResponse,
+  CreateProjectRequest,
   FileEntry,
   FileReadRequest,
   FileWriteRequest,
@@ -27,6 +28,7 @@ const mockProjects: Project[] = [
     name: 'E-commerce App',
     description: 'A local TypeScript starter project',
     language: 'typescript',
+    path: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isActive: true
@@ -36,6 +38,7 @@ const mockProjects: Project[] = [
     name: 'AI Assistant',
     description: 'Python assistant workspace',
     language: 'python',
+    path: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isActive: false
@@ -45,6 +48,7 @@ const mockProjects: Project[] = [
     name: 'Mobile Game',
     description: 'Rust game prototype',
     language: 'rust',
+    path: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     isActive: false
@@ -66,10 +70,14 @@ export async function getBackendStatus(): Promise<BackendStatus> {
 
 export async function listProjects(): Promise<Project[]> {
   try {
-    return await tauriInvoke<Project[]>('list_projects');
+    return await tauriInvoke<Project[]>('get_projects');
   } catch {
     return mockProjects;
   }
+}
+
+export async function createProject(request: CreateProjectRequest): Promise<Project> {
+  return tauriInvoke<Project>('create_project', { request });
 }
 
 export async function sendChatMessage(request: AIChatRequest): Promise<AIChatResponse> {

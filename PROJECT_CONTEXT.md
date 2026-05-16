@@ -24,7 +24,7 @@ The backend should act as the stable integration boundary for:
 - Backend: Rust Tauri commands
 - Editor: Monaco Editor
 - AI engine target: Ollama or llama.cpp through a local Rust HTTP bridge
-- Database target: SQLite, currently mocked
+- Database target: embedded SQLite via `rusqlite`
 
 ## Current Implementation Status
 
@@ -51,8 +51,11 @@ Implemented:
   - `src-tauri/src/fs_ops.rs`
   - `src-tauri/src/ai.rs`
   - `src-tauri/src/build_runner.rs`
+  - `src-tauri/src/db.rs`
   - `src-tauri/src/models.rs`
 - Ollama and llama.cpp integration behind Rust AI commands with mock fallback
+- Self-healing compiler loop with up to 3 AI-assisted retries when `sourcePath` is provided
+- Embedded SQLite project storage in the OS app data directory
 
 Verified:
 - `npm install` completed
@@ -76,7 +79,8 @@ Blocked:
 - `src-tauri/src/commands.rs`: Tauri command handlers
 - `src-tauri/src/fs_ops.rs`: workspace-scoped local file IO
 - `src-tauri/src/ai.rs`: offline AI bridge for Ollama and llama.cpp
-- `src-tauri/src/build_runner.rs`: local terminal build command runner
+- `src-tauri/src/build_runner.rs`: local terminal build command runner with self-healing retry loop
+- `src-tauri/src/db.rs`: SQLite initialization and local project storage
 - `src-tauri/src/models.rs`: Rust request/response DTOs
 - `src-tauri/tauri.conf.json`: Tauri v2 app configuration
 
@@ -92,6 +96,8 @@ Rust commands in `src-tauri/src/lib.rs` are the desktop/backend boundary.
 
 - `get_backend_status`
 - `list_projects`
+- `get_projects`
+- `create_project`
 - `list_files`
 - `ai_chat`
 - `ai_suggest`
@@ -140,9 +146,24 @@ Current write/read behavior is scoped to a local `workspace` folder created unde
 
 ## Database Direction
 
-Project listing is currently mocked in Rust.
+Project listing is SQLite-backed through `rusqlite`.
 
-Next step is to replace `list_projects` with SQLite-backed storage while keeping the frontend API unchanged.
+Database file:
+
+```text
+topptic_data.db
+```
+
+Location:
+- Tauri app data directory for the current user
+
+Tables:
+- `projects` with `id`, `name`, `path`, `created_at`
+- `ai_history` with `id`, `project_id`, `prompt`, `response`, `created_at`
+
+Frontend APIs:
+- `createProject({ name, path })`
+- `listProjects()`
 
 ## Build System Direction
 
@@ -154,6 +175,14 @@ Default command inference:
 - no known build file -> local message via `cmd /C echo ...`
 
 The frontend can also pass an explicit command and args.
+
+When `sourcePath` is provided, `run_build` captures exact `stderr`. If compilation fails and `stderr` contains `error`, Rust sends the current source code and exact stderr to the local AI with:
+
+```text
+Fix this compilation error and return ONLY the corrected code.
+```
+
+The returned code overwrites the local source file and compilation retries up to 3 times.
 
 ## Setup Notes
 
@@ -182,7 +211,7 @@ Tauri requires:
 
 - npm reports dependency audit findings. Do not run `npm audit fix --force` without reviewing breaking changes.
 - Tauri desktop build is blocked until Rust and MSVC tooling are installed.
-- SQLite is integration-ready but not fully implemented.
+- SQLite project storage is implemented. AI history table exists; history write integration can be expanded in later UI flows.
 - Ollama integration requires the Ollama server to be running locally and the configured model to be pulled.
 - llama.cpp integration expects a local OpenAI-style/server completion endpoint at `127.0.0.1:8080/completion`.
 

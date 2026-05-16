@@ -14,11 +14,19 @@ pub struct BackendStatus {
 pub struct Project {
     pub id: String,
     pub name: String,
-    pub description: String,
-    pub language: String,
+    pub description: Option<String>,
+    pub language: Option<String>,
+    pub path: Option<String>,
     pub created_at: String,
     pub updated_at: String,
     pub is_active: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateProjectRequest {
+    pub name: String,
+    pub path: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,8 +94,12 @@ pub struct FormatCodeRequest {
 #[serde(rename_all = "camelCase")]
 pub struct BuildRequest {
     pub project_path: String,
+    pub source_path: Option<String>,
+    pub code: Option<String>,
     pub command: Option<String>,
     pub args: Option<Vec<String>>,
+    pub max_retries: Option<u8>,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -98,4 +110,7 @@ pub struct BuildResponse {
     pub exit_code: Option<i32>,
     pub stdout: String,
     pub stderr: String,
+    pub attempts: u8,
+    pub healed: bool,
+    pub final_code: Option<String>,
 }

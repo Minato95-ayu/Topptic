@@ -1,55 +1,36 @@
 use crate::{
-    ai, build_runner, fs_ops,
+    ai, build_runner, db, fs_ops,
     models::{
         AiChatRequest, AiChatResponse, AiSuggestRequest, AiSuggestResponse, BackendStatus,
-        BuildRequest, BuildResponse, FileEntry, FileReadRequest, FileWriteRequest,
-        FormatCodeRequest, Project,
+        BuildRequest, BuildResponse, CreateProjectRequest, FileEntry, FileReadRequest,
+        FileWriteRequest, FormatCodeRequest, Project,
     },
 };
+use tauri::AppHandle;
 
 #[tauri::command]
 pub fn get_backend_status() -> BackendStatus {
     BackendStatus {
         tauri: true,
         ai_engine: ai::detect_ai_engine(),
-        database: "mock".to_string(),
+        database: "sqlite".to_string(),
         workspace: fs_ops::workspace_label(),
     }
 }
 
 #[tauri::command]
-pub fn list_projects() -> Vec<Project> {
-    let now = "2026-05-17T00:00:00.000Z".to_string();
+pub fn list_projects(app: AppHandle) -> Result<Vec<Project>, String> {
+    db::get_projects(&app)
+}
 
-    vec![
-        Project {
-            id: "sample-web".to_string(),
-            name: "E-commerce App".to_string(),
-            description: "A local TypeScript starter project".to_string(),
-            language: "typescript".to_string(),
-            created_at: now.clone(),
-            updated_at: now.clone(),
-            is_active: true,
-        },
-        Project {
-            id: "sample-ai".to_string(),
-            name: "AI Assistant".to_string(),
-            description: "Python assistant workspace".to_string(),
-            language: "python".to_string(),
-            created_at: now.clone(),
-            updated_at: now.clone(),
-            is_active: false,
-        },
-        Project {
-            id: "sample-rust".to_string(),
-            name: "Mobile Game".to_string(),
-            description: "Rust game prototype".to_string(),
-            language: "rust".to_string(),
-            created_at: now.clone(),
-            updated_at: now,
-            is_active: false,
-        },
-    ]
+#[tauri::command]
+pub fn get_projects(app: AppHandle) -> Result<Vec<Project>, String> {
+    db::get_projects(&app)
+}
+
+#[tauri::command]
+pub fn create_project(app: AppHandle, request: CreateProjectRequest) -> Result<Project, String> {
+    db::create_project(&app, request)
 }
 
 #[tauri::command]

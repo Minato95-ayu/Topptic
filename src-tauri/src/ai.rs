@@ -61,6 +61,30 @@ pub fn suggest(request: AiSuggestRequest) -> AiSuggestResponse {
     }
 }
 
+pub fn fix_compilation_error(
+    code: &str,
+    stderr: &str,
+    file_path: Option<&str>,
+    model: Option<&str>,
+) -> Result<String, String> {
+    let mut prompt = String::from(
+        "Fix this compilation error and return ONLY the corrected code.\nDo not include Markdown fences, explanations, comments about the fix, or any surrounding text.",
+    );
+
+    if let Some(file_path) = file_path.filter(|value| !value.trim().is_empty()) {
+        prompt.push_str("\n\nFile:\n");
+        prompt.push_str(file_path);
+    }
+
+    prompt.push_str("\n\nCompilation stderr:\n");
+    prompt.push_str(stderr);
+    prompt.push_str("\n\nOriginal code:\n");
+    prompt.push_str(code);
+
+    let model = resolve_model(model);
+    complete(&prompt, &model).map(strip_code_fences)
+}
+
 fn complete(prompt: &str, model: &str) -> Result<String, String> {
     if port_is_open(OLLAMA_HOST) {
         return complete_with_ollama(prompt, model);
@@ -160,6 +184,26 @@ fn clean_answer(answer: String, engine: &str) -> Result<String, String> {
     } else {
         Ok(answer)
     }
+}
+
+fn strip_code_fences(answer: String) -> String {
+    let trimmed = answer.trim();
+
+    if !trimmed.starts_with("```") {
+        return trimmed.to_string();
+    }
+
+    let without_opening = trimmed
+        .lines()
+        .skip(1)
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    without_opening
+        .strip_suffix("```")
+        .unwrap_or(&without_opening)
+        .trim()
+        .to_string()
 }
 
 fn post_json(

@@ -1,11 +1,17 @@
 export interface Project {
   id: string;
   name: string;
-  description: string;
-  language: 'typescript' | 'javascript' | 'python' | 'rust';
+  description: string | null;
+  language: 'typescript' | 'javascript' | 'python' | 'rust' | null;
+  path: string | null;
   createdAt: string;
   updatedAt: string;
   isActive: boolean;
+}
+
+export interface CreateProjectRequest {
+  name: string;
+  path: string;
 }
 
 export interface EditorTab {
@@ -74,14 +80,21 @@ export interface FileEntry {
 
 export interface BuildRequest {
   projectPath: string;
+  sourcePath?: string;
+  code?: string;
   command?: string;
   args?: string[];
+  maxRetries?: number;
+  model?: string;
 }
 
 export interface BuildResponse {
   success: boolean;
   command: string;
-  exitCode?: number;
+  exitCode: number | null;
   stdout: string;
   stderr: string;
+  attempts: number;
+  healed: boolean;
+  finalCode: string | null;
 }
