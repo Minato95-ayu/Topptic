@@ -1,0 +1,22 @@
+[
+  {
+    "instruction": "Write the complete and highly optimized code for the file: home.html",
+    "input": "File name is home.html",
+    "output": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>My Website</title>\n</head>\n<body>\n\n    <h1>Hello Bhai \ud83d\ude80</h1>\n    <p>Meri first HTML file</p>\n\n</body>\n</html>"
+  },
+  {
+    "instruction": "Write the complete and highly optimized code for the file: anno\\home.html",
+    "input": "File name is home.html",
+    "output": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>My Website</title>\n</head>\n<body>\n\n    <h1>Hello Bhai </h1>\n    <p>Meri first HTML file</p>\n</body>\n</html>"
+  },
+  {
+    "instruction": "Write the complete and highly optimized code for the file: calculater\\index.html",
+    "input": "File name is index.html",
+    "output": "<!DOCTYPE html><html>...</html>"
+  },
+  {
+    "instruction": "Write the complete and highly optimized code for the file: calculater\\server.js",
+    "input": "File name is server.js",
+    "output": "const express = require('express'); const app = express(); app.get('/', (req, res) => {res.send('Hello World!');}); app.listen(3000, () => {console.log('Server is running on port 3000');})"
+  }
+]

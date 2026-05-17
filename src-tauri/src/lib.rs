@@ -28,7 +28,8 @@ pub fn run() {
             commands::run_build,
             commands::export_project,
             commands::execute_terminal_command,
-            commands::search_workspace_rag
+            commands::search_workspace_rag,
+            commands::start_vertex_training
         ])
         .run(tauri::generate_context!())
         .expect("error while running Topptic");

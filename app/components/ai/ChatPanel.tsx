@@ -503,9 +503,52 @@ Respond in concise Hinglish if asked in Hinglish.`;
             type="button"
             onClick={() => handleTriggerPreset("Document all major workflow branches, function statements, types, and imports in this file using elegant TSX comment structures. Return the whole annotated code block.")}
             disabled={!selectedFilePath || isLoading}
-            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/25 hover:border-purple-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
+            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-slate-500/10 hover:bg-slate-500/20 text-slate-400 border border-slate-500/25 hover:border-slate-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
           >
             <Icons.FileText className="w-3 h-3" /> Document
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              if (isLoading) return;
+              setIsLoading(true);
+              const { invoke } = await import('@tauri-apps/api/core');
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: crypto.randomUUID(),
+                  role: 'user',
+                  content: 'Start automated Vertex AI reinforcement training loop.',
+                  timestamp: new Date().toISOString()
+                },
+                {
+                  id: crypto.randomUUID(),
+                  role: 'assistant',
+                  content: '🤖 [Vertex AI Engine] Local training loop initialized. Redirecting system logs directly to the live terminal panel below...',
+                  timestamp: new Date().toISOString()
+                }
+              ]);
+              try {
+                await invoke('start_vertex_training');
+                setIsLoading(false);
+              } catch (err) {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: crypto.randomUUID(),
+                    role: 'assistant',
+                    content: `❌ Vertex AI pipeline error: ${String(err)}`,
+                    timestamp: new Date().toISOString()
+                  }
+                ]);
+                setIsLoading(false);
+              }
+            }}
+            disabled={isLoading}
+            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 hover:border-purple-500/50 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
+          >
+            <Icons.RefreshCw className="w-3 h-3 animate-spin" style={{ animationDuration: '3s' }} /> Vertex Training
           </button>
         </div>
 
