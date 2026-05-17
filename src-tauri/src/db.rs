@@ -36,6 +36,17 @@ pub fn init_database(app: &AppHandle) -> Result<(), String> {
                 file_content, 
                 file_imports
             );
+
+            CREATE TABLE IF NOT EXISTS project_symbols (
+                id TEXT PRIMARY KEY NOT NULL,
+                project_id TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                symbol_name TEXT NOT NULL,
+                symbol_type TEXT NOT NULL, -- 'class' | 'function' | 'import' | 'export'
+                line_number INTEGER NOT NULL,
+                code_snippet TEXT NOT NULL,
+                FOREIGN KEY(project_id) REFERENCES projects(id)
+            );
             ",
         )
         .map_err(|error| error.to_string())
