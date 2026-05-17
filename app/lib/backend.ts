@@ -192,3 +192,7 @@ export async function renameFileOrFolder(oldPath: string, newName: string): Prom
 export async function revealInExplorer(path: string): Promise<void> {
   return tauriInvoke('reveal_in_explorer', { path });
 }
+
+export async function importFolder(): Promise<string> {
+  return tauriInvoke<string>('import_folder');
+}

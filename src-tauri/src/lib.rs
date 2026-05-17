@@ -41,7 +41,8 @@ pub fn run() {
             commands::register_mcp_server,
             commands::delete_file_or_folder,
             commands::rename_file_or_folder,
-            commands::reveal_in_explorer
+            commands::reveal_in_explorer,
+            commands::import_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running Topptic");

@@ -513,3 +513,44 @@ pub fn reveal_in_explorer(path: String) -> Result<(), String> {
     crate::fs_ops::reveal_in_explorer(&path)
 }
 
+#[tauri::command]
+pub async fn import_folder(_app: tauri::AppHandle) -> Result<String, String> {
+    use std::process::Command;
+
+    // Step 1: Open native folder picker dialog
+    let os = std::env::consts::OS;
+    let selected_path = if os == "windows" {
+        let script = r#"
+            Add-Type -AssemblyName System.Windows.Forms;
+            $f = New-Object System.Windows.Forms.FolderBrowserDialog;
+            $f.Description = 'Select folder to import into Topptic workspace';
+            $f.ShowNewFolderButton = $false;
+            if ($f.ShowDialog() -eq 'OK') {
+                Write-Output $f.SelectedPath
+            }
+        "#;
+
+        let output = Command::new("powershell.exe")
+            .arg("-Command")
+            .arg(script)
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    } else {
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg("zenity --file-selection --directory 2>/dev/null || echo ''")
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        String::from_utf8_lossy(&output.stdout).trim().to_string()
+    };
+
+    if selected_path.is_empty() {
+        return Err("No folder selected".to_string());
+    }
+
+    // Step 2: Copy folder recursively into workspace
+    crate::fs_ops::import_external_folder(&selected_path)
+}

@@ -300,3 +300,82 @@ pub fn reveal_in_explorer(path: &str) -> Result<(), String> {
     }
     Ok(())
 }
+
+/// Import an external folder from anywhere on the computer into the Topptic workspace.
+/// Recursively copies all files and sub-directories, preserving the full folder structure.
+/// Skips heavy/unnecessary directories (node_modules, .git, target, etc.)
+pub fn import_external_folder(source_path: &str) -> Result<String, String> {
+    let source = std::path::Path::new(source_path);
+    if !source.exists() {
+        return Err(format!("Source folder not found: {}", source_path));
+    }
+    if !source.is_dir() {
+        return Err(format!("Source path is not a directory: {}", source_path));
+    }
+
+    let folder_name = source
+        .file_name()
+        .ok_or("Invalid folder name")?
+        .to_string_lossy()
+        .to_string();
+
+    let workspace = workspace_root()?;
+    let dest = workspace.join(&folder_name);
+
+    // Create destination directory
+    fs::create_dir_all(&dest).map_err(|e| e.to_string())?;
+
+    // Directories to skip during import (heavy/unnecessary)
+    let skip_dirs = [
+        "node_modules", "target", ".git", ".next", "dist", "build", "out",
+        ".cargo", "__pycache__", ".topptic", "venv", ".venv", "env",
+    ];
+
+    fn copy_dir_recursive(
+        src: &std::path::Path,
+        dst: &std::path::Path,
+        skip: &[&str],
+        count: &mut usize,
+    ) -> Result<(), String> {
+        let entries = fs::read_dir(src).map_err(|e| format!("Failed to read {}: {}", src.display(), e))?;
+
+        for entry in entries {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+
+            // Skip heavy directories
+            if path.is_dir() && skip.contains(&name.as_str()) {
+                continue;
+            }
+
+            let dest_path = dst.join(&name);
+
+            if path.is_dir() {
+                fs::create_dir_all(&dest_path).map_err(|e| e.to_string())?;
+                copy_dir_recursive(&path, &dest_path, skip, count)?;
+            } else {
+                // Skip very large files (>10MB) to protect low-RAM systems
+                if let Ok(meta) = path.metadata() {
+                    if meta.len() > 10_000_000 {
+                        continue;
+                    }
+                }
+                fs::copy(&path, &dest_path).map_err(|e| {
+                    format!("Failed to copy {}: {}", path.display(), e)
+                })?;
+                *count += 1;
+            }
+        }
+        Ok(())
+    }
+
+    let mut file_count = 0;
+    copy_dir_recursive(source, &dest, &skip_dirs, &mut file_count)?;
+
+    Ok(format!(
+        "Imported '{}' → {} files copied to workspace/{}",
+        source_path, file_count, folder_name
+    ))
+}
+

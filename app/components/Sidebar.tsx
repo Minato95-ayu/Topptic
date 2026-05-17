@@ -48,6 +48,28 @@ export default function Sidebar() {
     }
   };
 
+  const handleImportFolder = async () => {
+    try {
+      const result = await invoke<string>('import_folder');
+      console.log("Import result:", result);
+      // Extract folder name from result message
+      const match = result.match(/workspace\/(.+)$/);
+      const folderName = match ? match[1] : 'Imported Project';
+      
+      // Register as a new project
+      await invoke('create_project', {
+        request: {
+          name: folderName,
+          path: folderName
+        }
+      });
+      
+      await refreshProjects();
+    } catch (error) {
+      console.error("Import Folder failed:", error);
+    }
+  };
+
   const handleGitAction = async (action: string) => {
     if (!currentProject) return;
     setGitLoading(true);
@@ -202,15 +224,26 @@ export default function Sidebar() {
           </span>
           
           {activeNav === 'projects' && (
-            <button
-              onClick={handleOpenFolder}
-              className="p-1 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-800/60 transition-all"
-              title="Open Folder (Pick Workspace)"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleOpenFolder}
+                className="p-1 rounded text-slate-500 hover:text-blue-400 hover:bg-slate-800/60 transition-all"
+                title="Open Folder (Link Workspace)"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                </svg>
+              </button>
+              <button
+                onClick={handleImportFolder}
+                className="p-1 rounded text-slate-500 hover:text-emerald-400 hover:bg-slate-800/60 transition-all"
+                title="Import Folder (Copy files into workspace)"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </button>
+            </div>
           )}
         </div>
 
