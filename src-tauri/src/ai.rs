@@ -243,6 +243,54 @@ fn post_json(
     parse_http_response(&response)
 }
 
+fn decode_chunked(body: &str) -> Result<String, String> {
+    if body.trim().starts_with('{') {
+        return Ok(body.to_string());
+    }
+
+    let mut decoded = String::new();
+    let mut remainder = body;
+
+    while !remainder.is_empty() {
+        let Some((size_hex, next_part)) = remainder.split_once("\r\n") else {
+            break;
+        };
+
+        let size_hex_trimmed = size_hex.trim();
+        if size_hex_trimmed.is_empty() {
+            remainder = next_part;
+            continue;
+        }
+
+        let size = match usize::from_str_radix(size_hex_trimmed, 16) {
+            Ok(s) => s,
+            Err(_) => break,
+        };
+
+        if size == 0 {
+            break;
+        }
+
+        if next_part.len() < size {
+            break;
+        }
+
+        let chunk_data = &next_part[..size];
+        decoded.push_str(chunk_data);
+
+        remainder = &next_part[size..];
+        if remainder.starts_with("\r\n") {
+            remainder = &remainder[2..];
+        }
+    }
+
+    if decoded.is_empty() {
+        Ok(body.to_string())
+    } else {
+        Ok(decoded)
+    }
+}
+
 fn parse_http_response(response: &str) -> Result<String, String> {
     let (headers, body) = response
         .split_once("\r\n\r\n")
@@ -256,7 +304,12 @@ fn parse_http_response(response: &str) -> Result<String, String> {
             .to_string());
     }
 
-    Ok(body.to_string())
+    let is_chunked = headers.to_lowercase().contains("transfer-encoding: chunked");
+    if is_chunked {
+        decode_chunked(body)
+    } else {
+        Ok(body.to_string())
+    }
 }
 
 fn port_is_open(host: &str) -> bool {
