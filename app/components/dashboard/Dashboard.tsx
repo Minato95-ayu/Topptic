@@ -20,12 +20,13 @@ export function Dashboard() {
 
     setIsCreating(true);
     try {
-      await createProject({
+      const newProj = await createProject({
         name: newProjectName,
         path: `./workspace/${newProjectName.toLowerCase().replace(/\s+/g, '-')}`,
         language: newProjectLanguage
       });
       await refreshProjects();
+      setSelectedProjectId(newProj.id);
       setIsModalOpen(false);
       setNewProjectName('');
     } catch (error) {
