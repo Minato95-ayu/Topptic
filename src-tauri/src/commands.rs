@@ -323,3 +323,90 @@ pub fn start_vertex_training(app: tauri::AppHandle) -> Result<String, String> {
     Ok("Training started".to_string())
 }
 
+#[tauri::command]
+pub async fn open_workspace_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    use std::process::Command;
+
+    // Use platform-native dialogue spawners
+    let os = std::env::consts::OS;
+    if os == "windows" {
+        // Spawn standard Windows FolderBrowserDialog via PowerShell script
+        let script = r#"
+            Add-Type -AssemblyName System.Windows.Forms;
+            $f = New-Object System.Windows.Forms.FolderBrowserDialog;
+            $f.Description = 'Select Topptic Project Workspace Folder';
+            $f.ShowNewFolderButton = $true;
+            if ($f.ShowDialog() -eq 'OK') {
+                Write-Output $f.SelectedPath
+            }
+        "#;
+        
+        let output = Command::new("powershell.exe")
+            .arg("-Command")
+            .arg(script)
+            .output()
+            .map_err(|e| e.to_string())?;
+            
+        let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if path_str.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(path_str))
+        }
+    } else {
+        // Fallback for macOS/Linux using standard AppleScript or Zenity if available
+        let output = Command::new("sh")
+            .arg("-c")
+            .arg("zenity --file-selection --directory 2>/dev/null || echo ''")
+            .output()
+            .map_err(|e| e.to_string())?;
+            
+        let path_str = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if path_str.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(path_str))
+        }
+    }
+}
+
+#[tauri::command]
+pub fn run_git_command(
+    action: String,
+    project_path: String,
+    commit_msg: Option<String>,
+) -> Result<String, String> {
+    use std::process::Command;
+
+    let mut cmd = Command::new("git");
+    cmd.current_dir(&project_path);
+
+    match action.as_str() {
+        "status" => {
+            cmd.args(&["status", "--short"]);
+        }
+        "stage_all" => {
+            cmd.args(&["add", "."]);
+        }
+        "commit" => {
+            let msg = commit_msg.as_deref().unwrap_or("chore: auto-update via Topptic");
+            cmd.args(&["commit", "-m", msg]);
+        }
+        "push" => {
+            cmd.args(&["push"]);
+        }
+        _ => return Err(format!("Unsupported git operation: {}", action)),
+    }
+
+    let output = cmd.output().map_err(|e| e.to_string())?;
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+
+    if !output.status.success() {
+        return Err(if stderr.is_empty() { stdout } else { stderr });
+    }
+
+    Ok(stdout)
+}
+
+
