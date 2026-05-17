@@ -140,41 +140,47 @@ export function TerminalPanel({ onClose }: TerminalPanelProps) {
       onClick={handlePanelClick}
       className="h-64 border-t border-slate-700/40 bg-slate-950/80 backdrop-blur-xl flex flex-col select-none relative animate-in slide-in-from-bottom duration-200"
     >
-      {/* Console Header Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/30">
-        <div className="flex items-center gap-2">
-          <Icons.Terminal className="w-4 h-4 text-blue-400" />
-          <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Embedded Terminal</span>
-          <span className="text-[10px] font-mono text-slate-500 max-w-[200px] truncate">({projectPath})</span>
-          <div className="ml-4 flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 rounded-full px-2.5 py-0.5">
+      {/* Console Header Bar (VS Code style tabs) */}
+      <div className="flex items-center justify-between px-4 py-1.5 border-b border-slate-900/60 bg-slate-900/10">
+        <div className="flex items-center gap-5 border-b border-transparent">
+          <button type="button" className="text-[10px] font-semibold text-slate-500 hover:text-slate-350 transition-colors uppercase tracking-wider select-none">Problems</button>
+          <button type="button" className="text-[10px] font-semibold text-slate-500 hover:text-slate-350 transition-colors uppercase tracking-wider select-none">Output</button>
+          <button type="button" className="text-[10px] font-semibold text-slate-500 hover:text-slate-350 transition-colors uppercase tracking-wider select-none">Debug Console</button>
+          <button type="button" className="text-[10px] font-bold text-slate-100 border-b-[2px] border-blue-500 pb-1.5 -mb-[7.5px] uppercase tracking-wider select-none">Terminal</button>
+          <button type="button" className="text-[10px] font-semibold text-slate-500 hover:text-slate-350 transition-colors uppercase tracking-wider select-none">Ports</button>
+          <span className="text-[9px] font-mono text-slate-600 truncate hidden sm:inline ml-2 select-none">({projectPath})</span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 bg-slate-900/50 border border-slate-800 rounded-full px-2.5 py-0.5 select-none">
             <span className={`w-1.5 h-1.5 rounded-full ${isRunning ? 'bg-blue-400 animate-pulse' : 'bg-slate-500'}`} />
             <span className="text-[9px] uppercase font-bold text-slate-400 tracking-widest">{isRunning ? 'Running' : 'Idle'}</span>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLogs([]);
-            }}
-            className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition-colors"
-            title="Clear Console"
-          >
-            <Icons.RefreshCw className="w-3.5 h-3.5" />
-          </button>
-          <button 
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose?.();
-            }}
-            className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition-colors"
-            title="Hide Terminal"
-          >
-            <Icons.X className="w-3.5 h-3.5" />
-          </button>
+
+          <div className="flex items-center gap-1.5">
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setLogs([]);
+              }}
+              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition-colors"
+              title="Clear Console"
+            >
+              <Icons.RefreshCw className="w-3.5 h-3.5" />
+            </button>
+            <button 
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose?.();
+              }}
+              className="p-1 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded transition-colors"
+              title="Hide Terminal"
+            >
+              <Icons.X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
