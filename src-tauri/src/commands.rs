@@ -6,7 +6,7 @@ use crate::{
         FileEntry, FileReadRequest, FileWriteRequest, FormatCodeRequest, Project,
     },
 };
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 #[tauri::command]
 pub fn get_backend_status() -> BackendStatus {
