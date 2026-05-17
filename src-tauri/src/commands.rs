@@ -44,26 +44,34 @@ pub fn read_file(request: FileReadRequest) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn write_file(request: FileWriteRequest) -> Result<(), String> {
-    fs_ops::write_file(request)
+pub fn write_file(app: tauri::AppHandle, request: FileWriteRequest) -> Result<(), String> {
+    let content = request.content.clone();
+    let path = request.path.clone();
+    fs_ops::write_file(request)?;
+    let _ = crate::db::index_file_symbols(&app, "workspace", &path, &content);
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn ai_chat(request: AiChatRequest) -> Result<AiChatResponse, String> {
-    tauri::async_runtime::spawn_blocking(move || {
-        Ok(ai::chat(request))
+pub async fn ai_chat(app: tauri::AppHandle, request: AiChatRequest) -> Result<AiChatResponse, String> {
+    let message = request.message.clone();
+    let response = tauri::async_runtime::spawn_blocking(move || {
+        ai::chat(request)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())?;
+
+    let _ = crate::db::save_ai_history(&app, None, &message, &response.message);
+    Ok(response)
 }
 
 #[tauri::command]
 pub async fn ai_suggest(request: AiSuggestRequest) -> Result<AiSuggestResponse, String> {
     tauri::async_runtime::spawn_blocking(move || {
-        Ok(ai::suggest(request))
+        ai::suggest(request)
     })
     .await
-    .map_err(|e| e.to_string())?
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -324,7 +332,7 @@ pub fn start_vertex_training(app: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn open_workspace_folder(app: tauri::AppHandle) -> Result<Option<String>, String> {
+pub async fn open_workspace_folder(_app: tauri::AppHandle) -> Result<Option<String>, String> {
     use std::process::Command;
 
     // Use platform-native dialogue spawners

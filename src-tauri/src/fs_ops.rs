@@ -221,3 +221,18 @@ pub fn create_directory(path: &str) -> Result<(), String> {
     let path = resolve_workspace_path(path)?;
     fs::create_dir_all(path).map_err(|error| error.to_string())
 }
+
+pub fn log_failure(working_dir: &std::path::Path, command: &str, error: &str) -> Result<(), String> {
+    use std::io::Write;
+    let fail_path = working_dir.join("FAILURES.md");
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&fail_path)
+        .map_err(|e| e.to_string())?;
+    
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+    let log = format!("\n## Failure [{}]\n**Command:** `{}`\n**Error:**\n```\n{}\n```\n", now, command, error);
+    
+    file.write_all(log.as_bytes()).map_err(|e| e.to_string())
+}

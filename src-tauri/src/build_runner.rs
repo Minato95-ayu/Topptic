@@ -58,6 +58,7 @@ pub fn run_build(request: BuildRequest) -> Result<BuildResponse, String> {
         }
 
         if attempts > max_retries {
+            let _ = fs_ops::log_failure(&working_dir, &command, &stderr);
             return Ok(BuildResponse {
                 success: false,
                 command: format_command(&command, &args),
