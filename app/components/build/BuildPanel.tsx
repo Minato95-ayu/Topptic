@@ -9,7 +9,7 @@ import { useApp } from '@/app/providers';
 import type { BuildResponse } from '@/app/lib/types';
 
 export function BuildPanel() {
-  const { selectedProjectId, projects } = useApp();
+  const { selectedProjectId, projects, setPendingAutoFix } = useApp();
   const [isBuilding, setIsBuilding] = useState(false);
   const [lastBuild, setLastBuild] = useState<BuildResponse | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
@@ -95,6 +95,32 @@ export function BuildPanel() {
           </p>
         </div>
       </div>
+
+      {/* Glassmorphic Self-Healing Trigger Banner */}
+      {lastBuild && !lastBuild.success && lastBuild.stderr && (
+        <div className="bg-red-500/5 border border-red-500/10 rounded-xl p-4 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 backdrop-blur-md">
+          <div className="flex gap-3">
+            <div className="p-2 bg-red-500/10 rounded-lg text-red-400 border border-red-500/20">
+              <Icons.ShieldAlert className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-200">Build Failure Detected</h3>
+              <p className="text-xs text-slate-400 mt-1">Topptic offline AI can analyze this error and write a correction card for you.</p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              setPendingAutoFix({
+                stderr: lastBuild.stderr || 'Unknown compile failure.',
+                filePath: selectedProject?.path || '.'
+              });
+            }}
+            className="w-full md:w-auto text-xs px-4 py-2 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white flex items-center justify-center gap-1.5 shadow-lg shadow-red-500/10 transition-all font-semibold rounded-lg border border-red-500/20"
+          >
+            <Icons.Brain className="w-4 h-4 animate-bounce" /> Ask AI to Auto-Fix
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 flex flex-col min-h-0 glass-light rounded-xl overflow-hidden border border-slate-700/50">
         <div className="px-4 py-2 bg-slate-800/50 border-b border-slate-700/50 flex items-center justify-between">

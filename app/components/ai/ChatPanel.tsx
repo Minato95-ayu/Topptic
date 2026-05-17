@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/app/components/common/Button';
-import { sendChatMessage } from '@/app/lib/backend';
+import { sendChatMessage, searchWorkspaceRag } from '@/app/lib/backend';
 import { Icons } from '@/app/lib/icons';
 import type { AIChatMessage } from '@/app/lib/types';
 import { useApp } from '@/app/providers';
+import { ActionCard, type ActionPayload } from './ActionCard';
 
 const MessageContent = ({ content, onApply }: { content: string, onApply: (code: string) => void }) => {
-  const parts = content.split(/(```[\s\S]*?```)/g);
+  // Split on code blocks and <topptic_action> blocks
+  const parts = content.split(/(```[\s\S]*?```|<topptic_action>[\s\S]*?<\/topptic_action>)/g);
   return (
     <div className="space-y-2">
       {parts.map((part, index) => {
@@ -33,6 +35,22 @@ const MessageContent = ({ content, onApply }: { content: string, onApply: (code:
             </div>
           );
         }
+
+        if (part.startsWith('<topptic_action>')) {
+          try {
+            const rawJson = part.replace('<topptic_action>', '').replace('</topptic_action>', '').trim();
+            const payload: ActionPayload = JSON.parse(rawJson);
+            return <ActionCard key={index} payload={payload} />;
+          } catch (error) {
+            return (
+              <div key={index} className="p-3 bg-red-950/20 border border-red-900/30 rounded-lg text-[10px] font-mono text-red-400 my-2">
+                Failed to parse AI action: {String(error)}
+                <pre className="mt-1 text-[8px] opacity-70 overflow-x-auto">{part}</pre>
+              </div>
+            );
+          }
+        }
+
         return <p key={index} className="whitespace-pre-wrap">{part}</p>;
       })}
     </div>
@@ -40,7 +58,7 @@ const MessageContent = ({ content, onApply }: { content: string, onApply: (code:
 };
 
 export function ChatPanel() {
-  const { selectedFilePath, getLiveContent, setPendingDiff, selectedModel } = useApp();
+  const { selectedFilePath, getLiveContent, setPendingDiff, selectedModel, pendingAutoFix, setPendingAutoFix, setShowChat } = useApp();
   const [messages, setMessages] = useState<AIChatMessage[]>([
     {
       id: '1',
@@ -50,6 +68,15 @@ export function ChatPanel() {
     }
   ]);
   const [input, setInput] = useState('');
+
+  // Listen to global self-healing trigger events from Build/Terminal panels
+  useEffect(() => {
+    if (pendingAutoFix) {
+      setInput(`Fix this compilation error in my file:\n\n${pendingAutoFix.stderr}\n\nHere is the original file path: ${pendingAutoFix.filePath}`);
+      setPendingAutoFix(null);
+      setShowChat(true);
+    }
+  }, [pendingAutoFix, setPendingAutoFix, setShowChat]);
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -91,8 +118,25 @@ export function ChatPanel() {
       );
     };
 
-    // Construct high-context LLM prompt with Monaco active buffers
+    let ragContext = "";
+    if (content.toLowerCase().startsWith('@workspace')) {
+      const query = content.substring(10).trim();
+      if (query) {
+        updateAssistantMessage("🔍 Fetching workspace context offline...");
+        try {
+          ragContext = await searchWorkspaceRag(query);
+          updateAssistantMessage("🔍 Fetching workspace context offline...\n\nFound relevant files. Generating answer...");
+        } catch (error) {
+          console.error("Workspace RAG query failed:", error);
+        }
+      }
+    }
+
+    // Construct high-context LLM prompt with Monaco active buffers and RAG context
     let promptContext = "You are Topptic's offline coding assistant. Be concise, practical, and return actionable code guidance.";
+    if (ragContext) {
+      promptContext += `\n\n${ragContext}`;
+    }
     if (selectedFilePath) {
       promptContext += `\n\nCurrent file: ${selectedFilePath}`;
     }

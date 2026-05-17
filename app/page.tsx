@@ -10,8 +10,7 @@ import { Icons } from '@/app/lib/icons';
 import { useApp } from '@/app/providers';
 
 export default function Home() {
-  const { activeNav, selectedProjectId } = useApp();
-  const [showChat, setShowChat] = useState(true);
+  const { activeNav, selectedProjectId, showChat, setShowChat } = useApp();
 
   const renderActivePanel = () => {
     switch (activeNav) {
@@ -41,7 +40,7 @@ export default function Home() {
 
       <button
         type="button"
-        onClick={() => setShowChat((value) => !value)}
+        onClick={() => setShowChat(!showChat)}
         className="fixed bottom-6 right-6 p-3 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/50 hover:shadow-blue-500/75 transition-all hover-lift z-50"
         title="Toggle AI Chat"
       >

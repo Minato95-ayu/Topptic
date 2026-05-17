@@ -169,3 +169,10 @@ export async function listenToTerminalOutput(callback: (payload: TerminalOutputP
   return unlisten;
 }
 
+export async function searchWorkspaceRag(query: string): Promise<string> {
+  try {
+    return await tauriInvoke<string>('search_workspace_rag', { query });
+  } catch (error) {
+    return `Error searching workspace: ${String(error)}`;
+  }
+}

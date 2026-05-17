@@ -86,3 +86,106 @@ pub fn resolve_workspace_path(path: &str) -> Result<PathBuf, String> {
         Err("path must stay inside the Topptic workspace".to_string())
     }
 }
+
+pub fn search_workspace(query: &str) -> Result<String, String> {
+    let root = workspace_root()?;
+    let mut results: Vec<(String, String, usize)> = Vec::new();
+
+    let query_terms: Vec<String> = query
+        .to_lowercase()
+        .split_whitespace()
+        .map(|s| s.chars().filter(|c| c.is_alphanumeric()).collect())
+        .filter(|s: &String| s.len() > 1)
+        .collect();
+
+    if query_terms.is_empty() {
+        return Ok("No query terms to search for.".to_string());
+    }
+
+    // Recursively walk directory structure
+    fn walk_dir(dir: &std::path::Path, files: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let dir_name = path.file_name().unwrap_or_default().to_string_lossy();
+                    if dir_name != "node_modules" && dir_name != "target" && !dir_name.starts_with('.') {
+                        walk_dir(&path, files);
+                    }
+                } else {
+                    let ext = path.extension().unwrap_or_default().to_string_lossy().to_lowercase();
+                    if matches!(ext.as_str(), "rs" | "js" | "jsx" | "ts" | "tsx" | "py" | "json" | "md" | "html" | "css") {
+                        files.push(path);
+                    }
+                }
+            }
+        }
+    }
+
+    let mut files = Vec::new();
+    walk_dir(&root, &mut files);
+
+    for file_path in files {
+        if let Ok(content) = std::fs::read_to_string(&file_path) {
+            let chunks: Vec<&str> = content.split('\n').collect();
+            let mut current_chunk = String::new();
+            
+            for line in chunks {
+                current_chunk.push_str(line);
+                current_chunk.push('\n');
+                
+                if current_chunk.len() >= 800 {
+                    let score = calculate_score(&current_chunk, &query_terms);
+                    if score > 0 {
+                        let relative_path = file_path
+                            .strip_prefix(&root)
+                            .unwrap_or(&file_path)
+                            .to_string_lossy()
+                            .to_string();
+                        results.push((relative_path, current_chunk.clone(), score));
+                    }
+                    current_chunk.clear();
+                }
+            }
+            
+            if !current_chunk.is_empty() {
+                let score = calculate_score(&current_chunk, &query_terms);
+                if score > 0 {
+                    let relative_path = file_path
+                        .strip_prefix(&root)
+                        .unwrap_or(&file_path)
+                        .to_string_lossy()
+                        .to_string();
+                    results.push((relative_path, current_chunk, score));
+                }
+            }
+        }
+    }
+
+    // Sort matching chunks based on highest tf-idf proxy score
+    results.sort_by(|a, b| b.2.cmp(&a.2));
+
+    if results.is_empty() {
+        return Ok("No matching code chunks found in the workspace.".to_string());
+    }
+
+    let mut context_msg = String::from("Retrieved local workspace context:\n\n");
+    for (i, (path, chunk, _score)) in results.into_iter().take(4).enumerate() {
+        context_msg.push_str(&format!("### Chunk {} from `{}`:\n```\n{}\n```\n\n", i + 1, path, chunk.trim()));
+    }
+
+    Ok(context_msg)
+}
+
+fn calculate_score(chunk: &str, query_terms: &[String]) -> usize {
+    let lower_chunk = chunk.to_lowercase();
+    let mut score = 0;
+    for term in query_terms {
+        let matches = lower_chunk.matches(term).count();
+        if matches > 0 {
+            // Reward unique keyword matches + term frequency
+            score += 10 + matches;
+        }
+    }
+    score
+}

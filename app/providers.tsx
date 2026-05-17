@@ -38,6 +38,12 @@ interface AppContextType {
   // Dynamic Model Selection
   selectedModel: string;
   setSelectedModel: (model: string) => void;
+
+  // Global AI Chat Panel states
+  showChat: boolean;
+  setShowChat: (show: boolean) => void;
+  pendingAutoFix: { stderr: string; filePath: string } | null;
+  setPendingAutoFix: (fix: { stderr: string; filePath: string } | null) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -64,6 +70,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // Dynamic Model Selection state
   const [selectedModel, setSelectedModel] = useState('llama3.2');
+
+  // Global AI Chat Panel state
+  const [showChat, setShowChat] = useState(true);
+  const [pendingAutoFix, setPendingAutoFix] = useState<{ stderr: string; filePath: string } | null>(null);
 
   const getLiveContent = () => liveContentRef.current;
   
@@ -236,6 +246,10 @@ export function Providers({ children }: { children: ReactNode }) {
         rejectPendingDiff,
         selectedModel,
         setSelectedModel,
+        showChat,
+        setShowChat,
+        pendingAutoFix,
+        setPendingAutoFix,
       }}
     >
       {children}

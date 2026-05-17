@@ -69,6 +69,11 @@ pub fn format_code(request: FormatCodeRequest) -> String {
 }
 
 #[tauri::command]
+pub fn search_workspace_rag(query: String) -> Result<String, String> {
+    fs_ops::search_workspace(&query)
+}
+
+#[tauri::command]
 pub fn run_build(request: BuildRequest) -> Result<BuildResponse, String> {
     build_runner::run_build(request)
 }
