@@ -1,8 +1,7 @@
 import os
 import torch
 from datasets import load_dataset
-from trl import SFTTrainer
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
+from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 
 # 1. LOAD MODEL AND TOKENIZER
 model_id = "Qwen/Qwen2.5-Coder-0.5B-Instruct"
@@ -17,11 +16,11 @@ print(f"Device locked to: {device.upper()}")
 
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
-    torch_dtype=torch.float32 if device == "cpu" else torch.float16,
+    torch_dtype=torch.float32,
     device_map="auto"
 )
 
-# 2. FORMAT DATASET
+# 2. FORMAT AND TOKENIZE DATASET
 prompt_template = """You are Antigravity Clone, the ultimate agentic programming AI.
 ### Instruction:
 {}
@@ -45,7 +44,17 @@ def formatting_prompts_func(examples):
 
 print("Loading prepared training_dataset.json...")
 dataset = load_dataset("json", data_files="training_dataset.json", split="train")
-dataset = dataset.map(formatting_prompts_func, batched = True)
+dataset = dataset.map(formatting_prompts_func, batched=True)
+
+# Tokenize helper for standard Causal Language Modeling
+def tokenize_function(examples):
+    tokenized = tokenizer(examples["text"], truncation=True, max_length=512)
+    # Causal LM requires input_ids to be copied as labels
+    tokenized["labels"] = tokenized["input_ids"].copy()
+    return tokenized
+
+print("Tokenizing and mapping training tensors...")
+tokenized_dataset = dataset.map(tokenize_function, batched=True, remove_columns=dataset.column_names)
 
 # 3. SETUP TRAINING ARGUMENTS
 print("Setting up training parameters...")
@@ -55,20 +64,19 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=2,
     learning_rate=2e-5,
     logging_steps=1,
-    max_steps=5, # Optimized low steps for fast local validation loop
+    max_steps=5, # Short steps for fast validation loop
     weight_decay=0.01,
-    fp16=False, # Stable float32 for CPU
+    fp16=False,
     bf16=False,
     remove_unused_columns=True,
     report_to="none"
 )
 
-# 4. START TRAINING
-print("Starting Hugging Face TRL SFTTrainer loop...")
-trainer = SFTTrainer(
+# 4. START TRAINING (Using core rock-solid Trainer)
+print("Starting Hugging Face Core Trainer loop...")
+trainer = Trainer(
     model=model,
-    train_dataset=dataset,
-    max_seq_length=512,
+    train_dataset=tokenized_dataset,
     args=training_args,
 )
 
