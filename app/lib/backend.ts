@@ -116,6 +116,10 @@ export async function writeFile(request: FileWriteRequest): Promise<void> {
   await tauriInvoke<void>('write_file', { request });
 }
 
+export async function createDirectory(path: string): Promise<void> {
+  await tauriInvoke<void>('create_directory', { path });
+}
+
 export async function formatCode(path: string, content: string): Promise<string> {
   try {
     return await tauriInvoke<string>('format_code', { request: { path, content } });

@@ -55,6 +55,10 @@ export default function Sidebar() {
             setSelectedProjectId(id);
             setActiveNav('projects');
           }} 
+          onCreateProjectClick={() => {
+            setSelectedProjectId(null);
+            setActiveNav('projects');
+          }}
         />
         
         {activeNav === 'projects' && selectedProjectId && (

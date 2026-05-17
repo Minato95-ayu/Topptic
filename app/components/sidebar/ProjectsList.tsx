@@ -9,9 +9,10 @@ import type { Project } from '@/app/lib/types';
 interface ProjectsListProps {
   projects: Project[];
   onSelectProject?: (id: string) => void;
+  onCreateProjectClick?: () => void;
 }
 
-export function ProjectsList({ projects, onSelectProject }: ProjectsListProps) {
+export function ProjectsList({ projects, onSelectProject, onCreateProjectClick }: ProjectsListProps) {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -39,7 +40,12 @@ export function ProjectsList({ projects, onSelectProject }: ProjectsListProps) {
               <span className="ml-auto text-xs text-slate-500 capitalize">{project.language}</span>
             </button>
           ))}
-          <Button variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2 mt-2">
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={onCreateProjectClick}
+            className="w-full flex items-center justify-center gap-2 mt-2"
+          >
             <Icons.Plus className="w-4 h-4" />
             New Project
           </Button>

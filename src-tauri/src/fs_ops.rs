@@ -189,3 +189,8 @@ fn calculate_score(chunk: &str, query_terms: &[String]) -> usize {
     }
     score
 }
+
+pub fn create_directory(path: &str) -> Result<(), String> {
+    let path = resolve_workspace_path(path)?;
+    fs::create_dir_all(path).map_err(|error| error.to_string())
+}

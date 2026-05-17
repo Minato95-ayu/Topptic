@@ -190,3 +190,8 @@ pub fn execute_terminal_command(
     Ok("Command started".to_string())
 }
 
+#[tauri::command]
+pub fn create_directory(path: String) -> Result<(), String> {
+    fs_ops::create_directory(&path)
+}
+

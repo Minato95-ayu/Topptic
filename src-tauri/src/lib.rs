@@ -21,6 +21,7 @@ pub fn run() {
             commands::list_files,
             commands::read_file,
             commands::write_file,
+            commands::create_directory,
             commands::ai_suggest,
             commands::ai_chat,
             commands::format_code,
