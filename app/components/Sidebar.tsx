@@ -1,3 +1,5 @@
+'use client';
+
 import { NavItem } from '@/app/components/sidebar/NavItem';
 import { ProjectsList } from '@/app/components/sidebar/ProjectsList';
 import { FileExplorer } from '@/app/components/sidebar/FileExplorer';
