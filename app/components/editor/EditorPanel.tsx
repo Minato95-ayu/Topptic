@@ -181,18 +181,6 @@ export function EditorPanel() {
     }
   };
 
-  if (!selectedFilePath) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-slate-950/20">
-        <div className="text-center">
-          <Icons.FileText className="w-16 h-16 text-slate-800 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-700">Select a file to edit</h2>
-          <p className="text-slate-600 mt-2">Choose a file from the explorer on the left</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
       <TabBar 
@@ -208,15 +196,15 @@ export function EditorPanel() {
       <div className="flex items-center justify-between border-b border-slate-700/30 bg-slate-900/30 px-4 py-2">
         <div className="flex items-center gap-2">
           <Icons.FileText className="w-4 h-4 text-blue-400/70" />
-          <span className="text-xs text-slate-400 font-mono">{selectedFilePath}</span>
+          <span className="text-xs text-slate-400 font-mono">{selectedFilePath || 'No active file'}</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-[10px] uppercase tracking-widest text-slate-600 font-bold">{status}</span>
           <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={handleFormat} disabled={!!pendingDiff}>
+            <Button variant="ghost" size="sm" onClick={handleFormat} disabled={!selectedFilePath || !!pendingDiff}>
               Format
             </Button>
-            <Button variant="secondary" size="sm" onClick={handleSave} disabled={!!pendingDiff}>
+            <Button variant="secondary" size="sm" onClick={handleSave} disabled={!selectedFilePath || !!pendingDiff}>
               Save
             </Button>
             <Button 
@@ -282,7 +270,15 @@ export function EditorPanel() {
 
       <div className="flex-1 overflow-hidden relative flex flex-col">
         <div className="flex-1 relative">
-          {pendingDiff ? (
+          {!selectedFilePath ? (
+            <div className="w-full h-full flex items-center justify-center bg-slate-950/20">
+              <div className="text-center">
+                <Icons.FileText className="w-16 h-16 text-slate-800/20 mx-auto mb-4" />
+                <h2 className="text-xl font-bold text-slate-400">Select a file to edit</h2>
+                <p className="text-slate-500 mt-2 text-sm">Choose a file from the explorer on the left, or toggle the Terminal above to run shell commands.</p>
+              </div>
+            </div>
+          ) : pendingDiff ? (
             <MonacoDiffEditor
               original={pendingDiff.original}
               modified={pendingDiff.modified}
