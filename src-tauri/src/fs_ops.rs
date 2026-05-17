@@ -16,6 +16,23 @@ pub fn workspace_label() -> String {
         .unwrap_or_else(|_| "unknown".to_string())
 }
 
+fn get_relative_path(root: &Path, full_path: &Path) -> Result<String, String> {
+    let root_str = root.to_string_lossy().to_lowercase().replace('\\', "/");
+    let full_str = full_path.to_string_lossy().to_lowercase().replace('\\', "/");
+    
+    if full_str.starts_with(&root_str) {
+        let rel = &full_path.to_string_lossy()[root_str.len()..];
+        let trimmed = rel.trim_start_matches('\\').trim_start_matches('/');
+        Ok(trimmed.replace('\\', "/"))
+    } else {
+        Err(format!(
+            "Path '{}' is not relative to root '{}'",
+            full_path.display(),
+            root.display()
+        ))
+    }
+}
+
 pub fn read_file(request: FileReadRequest) -> Result<String, String> {
     let path = resolve_workspace_path(&request.path)?;
     fs::read_to_string(path).map_err(|error| error.to_string())
@@ -51,11 +68,7 @@ pub fn list_files(path: Option<String>) -> Result<Vec<FileEntry>, String> {
             let metadata = entry.metadata().map_err(|error| error.to_string())?;
             let full_path = entry.path();
             let root = workspace_root()?;
-            let relative = full_path
-                .strip_prefix(root)
-                .map_err(|error| error.to_string())?
-                .to_string_lossy()
-                .replace('\\', "/");
+            let relative = get_relative_path(&root, &full_path)?;
 
             Ok(FileEntry {
                 path: relative,
@@ -78,9 +91,11 @@ pub fn resolve_workspace_path(path: &str) -> Result<PathBuf, String> {
 
     let workspace = workspace_root()?;
     let candidate = workspace.join(requested);
-    let parent = candidate.parent().unwrap_or(&workspace);
 
-    if parent.starts_with(&workspace) {
+    let workspace_str = workspace.to_string_lossy().to_lowercase().replace('\\', "/");
+    let candidate_str = candidate.to_string_lossy().to_lowercase().replace('\\', "/");
+
+    if candidate_str.starts_with(&workspace_str) {
         Ok(candidate)
     } else {
         Err("path must stay inside the Topptic workspace".to_string())
@@ -137,11 +152,7 @@ pub fn search_workspace(query: &str) -> Result<String, String> {
                 if current_chunk.len() >= 800 {
                     let score = calculate_score(&current_chunk, &query_terms);
                     if score > 0 {
-                        let relative_path = file_path
-                            .strip_prefix(&root)
-                            .unwrap_or(&file_path)
-                            .to_string_lossy()
-                            .to_string();
+                        let relative_path = get_relative_path(&root, &file_path).unwrap_or_else(|_| file_path.to_string_lossy().to_string());
                         results.push((relative_path, current_chunk.clone(), score));
                     }
                     current_chunk.clear();
@@ -151,11 +162,7 @@ pub fn search_workspace(query: &str) -> Result<String, String> {
             if !current_chunk.is_empty() {
                 let score = calculate_score(&current_chunk, &query_terms);
                 if score > 0 {
-                    let relative_path = file_path
-                        .strip_prefix(&root)
-                        .unwrap_or(&file_path)
-                        .to_string_lossy()
-                        .to_string();
+                    let relative_path = get_relative_path(&root, &file_path).unwrap_or_else(|_| file_path.to_string_lossy().to_string());
                     results.push((relative_path, current_chunk, score));
                 }
             }
