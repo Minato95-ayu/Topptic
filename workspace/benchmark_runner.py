@@ -19,7 +19,7 @@ weights_path = os.path.join(weights_dir, "model_weights.pt")
 vocab_path = os.path.join(weights_dir, "vocab.json")
 
 if not os.path.exists(weights_path) or not os.path.exists(vocab_path):
-    print("❌ Error: Trained weights or vocabulary not found! Please run 'python finetune_agent.py' first.")
+    print("[ERROR] Trained weights or vocabulary not found! Please run 'python finetune_agent.py' first.")
     exit(1)
 
 # Load vocabulary
@@ -127,17 +127,17 @@ max_tokens = 250
 generated, token_count, elapsed = model.generate_benchmark(context, max_tokens)
 tokens_per_sec = token_count / elapsed
 
-print(f"✅ Generated {token_count} character tokens in {elapsed:.3f} seconds!")
-print(f"📊 Speed: {tokens_per_sec:.2f} chars/sec (Direct Memory Speed)")
+print(f"[OK] Generated {token_count} character tokens in {elapsed:.3f} seconds!")
+print(f"[INFO] Speed: {tokens_per_sec:.2f} chars/sec (Direct Memory Speed)")
 
 # 3. RUN CONTEXT RECALL PRECISION
-print("\n[TEST 2] Testing Code Recall & Syntactic Memory...")
+print("\n[TEST 2] Testing Code Recall and Syntactic Memory...")
 output_text = decode(generated[0].tolist())
 
 # Look for express / require keyword inside output to test memorization accuracy
 keyword_found = "express" in output_text or "require" in output_text
 recall_score = 100 if keyword_found else 0
-print(f"✅ Keyword Verification Score: {recall_score}%")
+print(f"[OK] Keyword Verification Score: {recall_score}%")
 
 # 4. JSON ACTION CARD VALIDATION
 print("\n[TEST 3] Simulating Action Card Parsing Speed...")
@@ -150,7 +150,7 @@ except Exception:
     parse_success = "FAILED"
 end_parse = time.perf_counter()
 parse_time_ms = (end_parse - start_parse) * 1000
-print(f"✅ JSON Verification: {parse_success} in {parse_time_ms:.4f} ms!")
+print(f"[OK] JSON Verification: {parse_success} in {parse_time_ms:.4f} ms!")
 
 # 5. PRINT BENCHMARK SCORECARD
 overall_score = (recall_score * 0.4) + (min(100.0, (tokens_per_sec / 1500) * 100) * 0.6)
@@ -158,11 +158,12 @@ overall_score = (recall_score * 0.4) + (min(100.0, (tokens_per_sec / 1500) * 100
 print("\n" + "=" * 60)
 print("                   TOPPTIC AI BENCHMARK SCORECARD")
 print("=" * 60)
-print(f"  • Model Size:          826,947 parameters")
-print(f"  • Hardware Accelerator: {device.upper()}")
-print(f"  • Generation Speed:    {tokens_per_sec:.1f} tokens/sec")
-print(f"  • Memory Precision:    {recall_score}% Recall Accuracy")
-print(f"  • JSON Response Latency: {parse_time_ms:.4f} ms")
+print(f"  - Model Size:          826,947 parameters")
+print(f"  - Hardware Accelerator: {device.upper()}")
+print(f"  - Generation Speed:    {tokens_per_sec:.1f} tokens/sec")
+print(f"  - Memory Precision:    {recall_score}% Recall Accuracy")
+print(f"  - JSON Response Latency: {parse_time_ms:.4f} ms")
 print("-" * 60)
-print(f"  🏆 OVERALL AGENT POWER RATING: {overall_score:.1f}/100.0 (TIER: ELITE SFT)")
+print(f"  [SCORE] OVERALL AGENT POWER RATING: {overall_score:.1f}/100.0 (TIER: ELITE SFT)")
 print("=" * 60)
+
