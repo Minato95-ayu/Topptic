@@ -170,3 +170,81 @@ fn now_millis() -> u128 {
         .map(|duration| duration.as_millis())
         .unwrap_or_default()
 }
+
+pub fn index_file_symbols(
+    app: &AppHandle,
+    project_id: &str,
+    file_path: &str,
+    content: &str,
+) -> Result<(), String> {
+    let connection = open_connection(app)?;
+
+    // First clean up any old cached symbols for this exact file to avoid duplication
+    connection
+        .execute(
+            "DELETE FROM project_symbols WHERE project_id = ?1 AND file_path = ?2",
+            params![project_id, file_path],
+        )
+        .map_err(|error| error.to_string())?;
+
+    let lines: Vec<&str> = content.split('\n').collect();
+
+    for (idx, line) in lines.iter().enumerate() {
+        let line_num = (idx + 1) as i64;
+        let trimmed = line.trim();
+
+        // 1. Match Classes: e.g., "class Calculator" or "export class User"
+        if (trimmed.contains("class ") || trimmed.contains("struct ")) && !trimmed.contains(";") && !trimmed.contains("//") {
+            let words: Vec<&str> = trimmed.split_whitespace().collect();
+            if let Some(pos) = words.iter().position(|&w| w == "class" || w == "struct") {
+                if let Some(name) = words.get(pos + 1) {
+                    let symbol_name = name.split('{').next().unwrap_or(name).trim().to_string();
+                    connection.execute(
+                        "INSERT INTO project_symbols (id, project_id, file_path, symbol_name, symbol_type, line_number, code_snippet) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                        params![stable_id("sym"), project_id, file_path, symbol_name, "class", line_num, trimmed],
+                    ).map_err(|error| error.to_string())?;
+                }
+            }
+        }
+
+        // 2. Match Functions: e.g., "function add(a, b)" or "const login = () =>" or "def subtract(a, b):"
+        if (trimmed.contains("function ") || trimmed.contains("=>") || trimmed.contains("def ")) && !trimmed.contains("//") {
+            let symbol_name = if trimmed.contains("def ") {
+                let name = trimmed.split("def ").nth(1).unwrap_or("").split('(').next().unwrap_or("").trim();
+                name.split(':').next().unwrap_or(name).trim().to_string()
+            } else if trimmed.contains("function ") {
+                let name = trimmed.split("function ").nth(1).unwrap_or("").split('(').next().unwrap_or("").trim();
+                name.split('{').next().unwrap_or(name).trim().to_string()
+            } else if trimmed.contains("const ") || trimmed.contains("let ") {
+                trimmed.split_whitespace().nth(1).unwrap_or("").split('=').next().unwrap_or("").trim().to_string()
+            } else {
+                "".to_string()
+            };
+
+            if !symbol_name.is_empty() && symbol_name != "=" && symbol_name.len() > 1 {
+                connection.execute(
+                    "INSERT INTO project_symbols (id, project_id, file_path, symbol_name, symbol_type, line_number, code_snippet) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![stable_id("sym"), project_id, file_path, symbol_name, "function", line_num, trimmed],
+                ).map_err(|error| error.to_string())?;
+            }
+        }
+
+        // 3. Match Imports: e.g., "import express" or "const auth = require" or "import {"
+        if (trimmed.contains("import ") || trimmed.contains("require(") || trimmed.contains("from ")) && !trimmed.contains("//") {
+            let symbol_name = if trimmed.contains("require(") {
+                trimmed.split("require(").nth(1).unwrap_or("").split(')').next().unwrap_or("").replace("'", "").replace("\"", "").trim().to_string()
+            } else {
+                trimmed.split_whitespace().last().unwrap_or("").replace("'", "").replace("\"", "").replace(";", "").trim().to_string()
+            };
+
+            if !symbol_name.is_empty() && symbol_name.len() > 1 {
+                connection.execute(
+                    "INSERT INTO project_symbols (id, project_id, file_path, symbol_name, symbol_type, line_number, code_snippet) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    params![stable_id("sym"), project_id, file_path, symbol_name, "import", line_num, trimmed],
+                ).map_err(|error| error.to_string())?;
+            }
+        }
+    }
+
+    Ok(())
+}
