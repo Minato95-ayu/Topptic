@@ -34,6 +34,10 @@ interface AppContextType {
   setPendingDiff: (diff: { original: string; modified: string; filePath: string } | null) => void;
   acceptPendingDiff: () => Promise<void>;
   rejectPendingDiff: () => void;
+
+  // Dynamic Model Selection
+  selectedModel: string;
+  setSelectedModel: (model: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -57,6 +61,9 @@ export function Providers({ children }: { children: ReactNode }) {
 
   // Safe AI Apply state
   const [pendingDiff, setPendingDiff] = useState<{ original: string; modified: string; filePath: string } | null>(null);
+
+  // Dynamic Model Selection state
+  const [selectedModel, setSelectedModel] = useState('llama3.2');
 
   const getLiveContent = () => liveContentRef.current;
   
@@ -227,6 +234,8 @@ export function Providers({ children }: { children: ReactNode }) {
         setPendingDiff,
         acceptPendingDiff,
         rejectPendingDiff,
+        selectedModel,
+        setSelectedModel,
       }}
     >
       {children}

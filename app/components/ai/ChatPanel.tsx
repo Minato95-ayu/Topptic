@@ -40,7 +40,7 @@ const MessageContent = ({ content, onApply }: { content: string, onApply: (code:
 };
 
 export function ChatPanel() {
-  const { fileContent, selectedFilePath, setFileContent, getLiveContent, setPendingDiff } = useApp();
+  const { selectedFilePath, getLiveContent, setPendingDiff, selectedModel } = useApp();
   const [messages, setMessages] = useState<AIChatMessage[]>([
     {
       id: '1',
@@ -57,8 +57,9 @@ export function ChatPanel() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    const content = input.trim();
+  // Unified chat execution bridge (supports input submit and dynamic action presets)
+  const executeChatMessage = async (messageText: string) => {
+    const content = messageText.trim();
     if (!content || isLoading) return;
 
     const userMessage: AIChatMessage = {
@@ -72,7 +73,6 @@ export function ChatPanel() {
     setInput('');
     setIsLoading(true);
 
-    // Pre-insert an empty assistant message to stream into
     const assistantMessageId = crypto.randomUUID();
     const newAssistantMessage: AIChatMessage = {
       id: assistantMessageId,
@@ -91,7 +91,7 @@ export function ChatPanel() {
       );
     };
 
-    // Reconstruct context prompt matching Tauri backend standards
+    // Construct high-context LLM prompt with Monaco active buffers
     let promptContext = "You are Topptic's offline coding assistant. Be concise, practical, and return actionable code guidance.";
     if (selectedFilePath) {
       promptContext += `\n\nCurrent file: ${selectedFilePath}`;
@@ -104,16 +104,16 @@ export function ChatPanel() {
 
     let streamCompleted = false;
 
-    // Mode 1: Try Direct Local Ollama HTTP fetch with real-time SSE streaming
+    // Mode 1: Attempt direct local SSE stream fetch using selected LLM model
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200); // Fail fast to typewriter fallback if port closed
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
 
       const response = await fetch('http://127.0.0.1:11434/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama3.2',
+          model: selectedModel,
           prompt: promptContext,
           stream: true
         }),
@@ -139,7 +139,7 @@ export function ChatPanel() {
           for (const line of lines) {
             if (!line.trim()) continue;
             try {
-              const parsed = JSON.parse(line);
+              const parsed = JSON.parse(line) as { response?: string };
               if (parsed.response) {
                 accumulatedResponse += parsed.response;
                 updateAssistantMessage(accumulatedResponse);
@@ -152,7 +152,7 @@ export function ChatPanel() {
 
         if (buffer.trim()) {
           try {
-            const parsed = JSON.parse(buffer);
+            const parsed = JSON.parse(buffer) as { response?: string };
             if (parsed.response) {
               accumulatedResponse += parsed.response;
               updateAssistantMessage(accumulatedResponse);
@@ -162,13 +162,14 @@ export function ChatPanel() {
 
         if (accumulatedResponse.trim()) {
           streamCompleted = true;
+          setIsLoading(false);
         }
       }
     } catch (e) {
-      console.log('Direct Ollama connection not active or blocked. Falling back to typewriter driver.', e);
+      console.log('Direct Ollama connection not active. Falling back to rust cmd typewriter simulation.', e);
     }
 
-    // Mode 2: High-fidelity visual Typewriter streaming fallback over Tauri Rust channels
+    // Mode 2: Tauri rust bridge typewriter fallback simulation
     if (!streamCompleted) {
       try {
         const response = await sendChatMessage({ 
@@ -198,9 +199,16 @@ export function ChatPanel() {
         updateAssistantMessage(`System Error: Failed to contact local AI assistant. (${String(error)})`);
         setIsLoading(false);
       }
-    } else {
-      setIsLoading(false);
     }
+  };
+
+  const handleSendMessage = () => {
+    void executeChatMessage(input);
+  };
+
+  const handleTriggerPreset = (presetPrompt: string) => {
+    if (isLoading) return;
+    void executeChatMessage(presetPrompt);
   };
 
   const handleApplyCode = (code: string) => {
@@ -216,16 +224,17 @@ export function ChatPanel() {
     <div className="w-96 bg-slate-900/40 backdrop-blur-xl border-l border-slate-700/30 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-slate-700/30">
         <h3 className="text-sm font-semibold text-slate-50">AI Assistant</h3>
-        <p className="text-xs text-slate-500">Rust command bridge</p>
+        <p className="text-[10px] text-slate-500 font-mono">Model: {selectedModel}</p>
       </div>
 
+      {/* Messages Stream */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-4">
         {messages.map((message) => (
           <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className={`max-w-xs md:max-w-sm rounded-lg px-3 py-2 text-sm ${
+              className={`max-w-xs md:max-w-sm rounded-lg px-3 py-2 text-xs leading-relaxed ${
                 message.role === 'user'
-                  ? 'bg-blue-500/30 text-blue-100 border border-blue-500/50'
+                  ? 'bg-blue-500/30 text-blue-100 border border-blue-500/50 shadow-lg shadow-blue-500/5'
                   : 'bg-slate-800/50 text-slate-300 border border-slate-700/50 w-full'
               }`}
             >
@@ -235,17 +244,58 @@ export function ChatPanel() {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="flex gap-1 px-3 py-2 bg-slate-800/50 rounded-lg">
-              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" />
-              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-100" />
-              <span className="w-2 h-2 bg-slate-400 rounded-full animate-bounce delay-200" />
+            <div className="flex gap-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100" />
+              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200" />
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Action Presets and Chat Inputs */}
       <div className="border-t border-slate-700/30 p-4 space-y-3">
+        {/* Preset AI Prescription pills */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar scrollbar-none select-none">
+          <button
+            type="button"
+            onClick={() => handleTriggerPreset("Fix any syntax errors, logically incorrect statements, or typescript failures in my code. Return the whole corrected code block.")}
+            disabled={!selectedFilePath || isLoading}
+            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+          >
+            <Icons.ShieldAlert className="w-3 h-3" /> Fix Bugs
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleTriggerPreset("Optimize the efficiency, runtime performance, complexity parameters, and caching features of this code. Return the whole optimized code block.")}
+            disabled={!selectedFilePath || isLoading}
+            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 hover:border-green-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+          >
+            <Icons.Zap className="w-3 h-3" /> Optimize
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleTriggerPreset("Draft comprehensive and highly performant unit tests targeting key segments, edge cases, and interfaces in this code. Return the whole tests code block.")}
+            disabled={!selectedFilePath || isLoading}
+            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+          >
+            <Icons.Brain className="w-3 h-3" /> Write Tests
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleTriggerPreset("Document all major workflow branches, function statements, types, and imports in this file using elegant TSX comment structures. Return the whole annotated code block.")}
+            disabled={!selectedFilePath || isLoading}
+            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 hover:border-purple-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+          >
+            <Icons.FileText className="w-3 h-3" /> Document
+          </button>
+        </div>
+
+        {/* Input box */}
         <div className="flex gap-2">
           <input
             type="text"
@@ -254,14 +304,15 @@ export function ChatPanel() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') void handleSendMessage();
             }}
+            disabled={isLoading}
             placeholder={selectedFilePath ? `Ask about ${selectedFilePath.split('/').pop()}...` : "Ask me anything..."}
-            className="input-base flex-1 text-sm"
+            className="input-base flex-1 text-xs py-2 bg-slate-950/40"
           />
-          <Button onClick={() => void handleSendMessage()} disabled={!input.trim() || isLoading} className="px-3">
+          <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} className="px-3">
             <Icons.Send className="w-4 h-4" />
           </Button>
         </div>
-        <p className="text-xs text-slate-500 text-center">Context: {selectedFilePath ? 'Active File' : 'None'}</p>
+        <p className="text-[10px] text-slate-500 text-center select-none font-medium">Context: {selectedFilePath ? 'Active Monaco Buffer' : 'None'}</p>
       </div>
     </div>
   );
