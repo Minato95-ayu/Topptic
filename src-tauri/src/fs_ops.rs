@@ -5,9 +5,18 @@ use std::{
 };
 
 pub fn workspace_root() -> Result<PathBuf, String> {
-    std::env::current_dir()
-        .map(|path| path.join("workspace"))
-        .map_err(|error| error.to_string())
+    let mut dir = std::env::current_dir().map_err(|error| error.to_string())?;
+    
+    // If running in development (inside src-tauri), step out to the main project root
+    if dir.ends_with("src-tauri") {
+        if let Some(parent) = dir.parent() {
+            dir = parent.to_path_buf();
+        }
+    }
+    
+    let workspace = dir.join("workspace");
+    fs::create_dir_all(&workspace).map_err(|error| error.to_string())?;
+    Ok(workspace)
 }
 
 pub fn workspace_label() -> String {

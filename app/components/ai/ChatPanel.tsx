@@ -8,6 +8,123 @@ import type { AIChatMessage } from '@/app/lib/types';
 import { useApp } from '@/app/providers';
 import { ActionCard, type ActionPayload } from './ActionCard';
 
+const tryParseSelfHealingAction = (rawText: string): ActionPayload => {
+  const cleaned = rawText.trim();
+  
+  // 1. Try standard JSON.parse first
+  try {
+    const parsed = JSON.parse(cleaned);
+    // Nest flattened parameters if present
+    if (parsed.tool === 'write_file' && !parsed.parameters && (parsed.path || parsed.content)) {
+      parsed.parameters = {
+        path: parsed.path || '',
+        content: parsed.content || ''
+      };
+    }
+    if (parsed.tool === 'execute_command' && !parsed.parameters && (parsed.command || parsed.cwd)) {
+      parsed.parameters = {
+        command: parsed.command || '',
+        cwd: parsed.cwd || '.'
+      };
+    }
+    return parsed;
+  } catch {}
+
+  // 2. If it has trailing text/comma outside the main object, extract the main JSON block!
+  let braceCount = 0;
+  const firstBraceIndex = cleaned.indexOf('{');
+  let lastBraceIndex = -1;
+
+  if (firstBraceIndex !== -1) {
+    for (let i = firstBraceIndex; i < cleaned.length; i++) {
+      if (cleaned[i] === '{') {
+        braceCount++;
+      } else if (cleaned[i] === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          lastBraceIndex = i;
+          break;
+        }
+      }
+    }
+  }
+
+  if (firstBraceIndex !== -1 && lastBraceIndex !== -1) {
+    const objectSegment = cleaned.substring(firstBraceIndex, lastBraceIndex + 1);
+    try {
+      const parsed = JSON.parse(objectSegment);
+      
+      // Extract rationale from the trailing remainder
+      const remainder = cleaned.substring(lastBraceIndex + 1).trim();
+      const rationaleMatch = remainder.match(/"([^"]+)"/);
+      if (rationaleMatch && !parsed.rationale) {
+        parsed.rationale = rationaleMatch[1];
+      }
+
+      // Nest flattened parameters
+      if (parsed.tool === 'write_file' && !parsed.parameters && (parsed.path || parsed.content)) {
+        parsed.parameters = {
+          path: parsed.path || '',
+          content: parsed.content || ''
+        };
+      }
+      if (parsed.tool === 'execute_command' && !parsed.parameters && (parsed.command || parsed.cwd)) {
+        parsed.parameters = {
+          command: parsed.command || '',
+          cwd: parsed.cwd || '.'
+        };
+      }
+      
+      return parsed;
+    } catch {}
+  }
+
+  // 3. Fallback regex extraction if everything else fails
+  const toolMatch = cleaned.match(/"tool"\s*:\s*"([^"]+)"/);
+  const pathMatch = cleaned.match(/"path"\s*:\s*"([^"]+)"/);
+  const contentMatch = cleaned.match(/"content"\s*:\s*"([\s\S]*?)"(?=\s*(,|\n|\}))/);
+  const commandMatch = cleaned.match(/"command"\s*:\s*"([^"]+)"/);
+  const cwdMatch = cleaned.match(/"cwd"\s*:\s*"([^"]+)"/);
+  const rationaleMatch = cleaned.match(/"rationale"\s*:\s*"([^"]+)"/) || cleaned.match(/,\s*"([^"]+)"/);
+
+  if (toolMatch) {
+    const tool = toolMatch[1];
+    const rationale = rationaleMatch ? rationaleMatch[1] : 'Proposed agent action';
+    
+    if (tool === 'write_file' && pathMatch) {
+      let content = '';
+      if (contentMatch) {
+        try {
+          content = JSON.parse(`"${contentMatch[1]}"`);
+        } catch {
+          content = contentMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+        }
+      }
+      return {
+        tool: 'write_file',
+        parameters: {
+          path: pathMatch[1],
+          content
+        },
+        rationale
+      } as any;
+    }
+    
+    if (tool === 'execute_command' && commandMatch) {
+      return {
+        tool: 'execute_command',
+        parameters: {
+          command: commandMatch[1],
+          cwd: cwdMatch ? cwdMatch[1] : '.'
+        },
+        rationale
+      } as any;
+    }
+  }
+
+  throw new Error("Failed to heal or parse Action Card JSON.");
+};
+
 const MessageContent = ({ content, onApply }: { content: string, onApply: (code: string) => void }) => {
   // Split on code blocks and <topptic_action> blocks
   const parts = content.split(/(```[\s\S]*?```|<topptic_action>[\s\S]*?<\/topptic_action>)/g);
@@ -39,7 +156,7 @@ const MessageContent = ({ content, onApply }: { content: string, onApply: (code:
         if (part.startsWith('<topptic_action>')) {
           try {
             const rawJson = part.replace('<topptic_action>', '').replace('</topptic_action>', '').trim();
-            const payload: ActionPayload = JSON.parse(rawJson);
+            const payload = tryParseSelfHealingAction(rawJson);
             return <ActionCard key={index} payload={payload} />;
           } catch (error) {
             return (
