@@ -56,8 +56,18 @@ pub fn write_file(app: tauri::AppHandle, request: FileWriteRequest) -> Result<()
 }
 
 #[tauri::command]
-pub async fn ai_chat(app: tauri::AppHandle, request: AiChatRequest) -> Result<AiChatResponse, String> {
+pub async fn ai_chat(app: tauri::AppHandle, mut request: AiChatRequest) -> Result<AiChatResponse, String> {
     let message = request.message.clone();
+
+    // Smart Context Injection: auto-query FTS5 + symbols to enrich the AI prompt
+    if let Ok(smart_ctx) = crate::db::smart_context_for_query(&app, &message) {
+        if !smart_ctx.is_empty() {
+            // Append retrieved context into the code_context field
+            let existing = request.code_context.clone().unwrap_or_default();
+            request.code_context = Some(format!("{}\n{}", existing, smart_ctx));
+        }
+    }
+
     let response = tauri::async_runtime::spawn_blocking(move || {
         ai::chat(request)
     })

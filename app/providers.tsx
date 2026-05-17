@@ -215,7 +215,17 @@ export function Providers({ children }: { children: ReactNode }) {
     
     void fetchStatus();
     const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
+
+    // Disable default browser context menu globally for IDE feel
+    const handleGlobalContextMenu = (e: MouseEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('contextmenu', handleGlobalContextMenu);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('contextmenu', handleGlobalContextMenu);
+    };
   }, []);
 
   return (

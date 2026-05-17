@@ -20,6 +20,35 @@ export function ProjectsList({
   onCreateProjectClick 
 }: ProjectsListProps) {
   const [expanded, setExpanded] = useState(true);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; project: Project | null } | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, project: Project) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, project });
+  };
+
+  const handleReveal = async (path: string) => {
+    try {
+      const { revealInExplorer } = await import('@/app/lib/backend');
+      await revealInExplorer(path);
+    } catch (err) {
+      console.error('Failed to reveal:', err);
+    }
+  };
+
+  const handleCopyPath = async (path: string) => {
+    try {
+      await navigator.clipboard.writeText(path);
+    } catch (err) {
+      console.error('Failed to copy path:', err);
+    }
+  };
 
   return (
     <div className="px-4 py-2">
@@ -41,6 +70,7 @@ export function ProjectsList({
                 key={project.id}
                 type="button"
                 onClick={() => onSelectProject?.(project.id)}
+                onContextMenu={(e) => handleContextMenu(e, project)}
                 className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 border-l-2 ${
                   isSelected
                     ? 'border-blue-500 bg-blue-500/10 text-blue-100 font-medium'
@@ -64,6 +94,39 @@ export function ProjectsList({
             <Icons.Plus className="w-4 h-4" />
             New Project
           </Button>
+        </div>
+      )}
+
+      {/* Custom Context Menu Overlay for Projects */}
+      {contextMenu && contextMenu.project && contextMenu.project.path && (
+        <div
+          className="fixed z-[9999] w-56 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-xs flex flex-col"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              void handleCopyPath(contextMenu.project!.path!);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Copy Path</span>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Shift+Alt+C</span>
+          </button>
+
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          <button
+            onClick={() => {
+              void handleReveal(contextMenu.project!.path!);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Reveal in File Explorer</span>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Shift+Alt+R</span>
+          </button>
         </div>
       )}
     </div>

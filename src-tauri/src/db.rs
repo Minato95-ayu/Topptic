@@ -195,6 +195,31 @@ pub fn index_file_symbols(
         )
         .map_err(|error| error.to_string())?;
 
+    // Populate FTS5 project_memory index for instant full-text search
+    // Remove old entry first, then insert fresh content
+    let _ = connection.execute(
+        "DELETE FROM project_memory WHERE file_path = ?1",
+        params![file_path],
+    );
+
+    // Extract imports for the FTS5 imports column
+    let imports: Vec<&str> = content
+        .lines()
+        .filter(|line| {
+            let t = line.trim();
+            t.starts_with("import ") || t.contains("require(") || t.starts_with("from ") || t.starts_with("use ")
+        })
+        .collect();
+    let imports_str = imports.join("\n");
+
+    // Truncate content to 4000 chars for FTS5 to avoid bloating the index
+    let fts_content = if content.len() > 4000 { &content[..4000] } else { content };
+
+    let _ = connection.execute(
+        "INSERT INTO project_memory (file_path, file_content, file_imports) VALUES (?1, ?2, ?3)",
+        params![file_path, fts_content, imports_str],
+    );
+
     let lines: Vec<&str> = content.split('\n').collect();
 
     for (idx, line) in lines.iter().enumerate() {
@@ -290,3 +315,90 @@ pub fn get_latest_patch(
 
     Ok(result)
 }
+
+/// Smart Context Ranker: Builds a compact, highly-relevant context string
+/// by combining FTS5 full-text search results with AST symbol lookups.
+/// This replaces raw file truncation with intelligent snippet extraction.
+pub fn smart_context_for_query(
+    app: &AppHandle,
+    query: &str,
+) -> Result<String, String> {
+    let connection = open_connection(app)?;
+    let mut context = String::new();
+
+    // 1. FTS5 search — find files whose content matches the query
+    let fts_query = query
+        .split_whitespace()
+        .filter(|w| w.len() > 1)
+        .map(|w| format!("\"{}\"", w))
+        .collect::<Vec<_>>()
+        .join(" OR ");
+
+    if !fts_query.is_empty() {
+        if let Ok(mut stmt) = connection.prepare(
+            "SELECT file_path, snippet(project_memory, 1, '>>>', '<<<', '...', 60) FROM project_memory WHERE project_memory MATCH ?1 LIMIT 3"
+        ) {
+            let rows: Vec<(String, String)> = stmt
+                .query_map(params![fts_query], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .map_err(|e| e.to_string())?
+                .filter_map(|r| r.ok())
+                .collect();
+
+            if !rows.is_empty() {
+                context.push_str("\n\n### Relevant code from workspace:\n");
+                for (path, snippet) in &rows {
+                    context.push_str(&format!("\n**{}:**\n```\n{}\n```\n", path, snippet));
+                }
+            }
+        }
+    }
+
+    // 2. Symbol search — find matching function/class/import names
+    let query_lower = query.to_lowercase();
+    let terms: Vec<&str> = query_lower.split_whitespace().filter(|w| w.len() > 2).collect();
+
+    if !terms.is_empty() {
+        // Build a LIKE query for each term
+        let like_clause = terms
+            .iter()
+            .map(|t| format!("LOWER(symbol_name) LIKE '%{}%'", t))
+            .collect::<Vec<_>>()
+            .join(" OR ");
+
+        let sql = format!(
+            "SELECT DISTINCT file_path, symbol_name, symbol_type, line_number, code_snippet FROM project_symbols WHERE {} LIMIT 8",
+            like_clause
+        );
+
+        if let Ok(mut stmt) = connection.prepare(&sql) {
+            let symbols: Vec<(String, String, String, i64, String)> = stmt
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                        row.get::<_, i64>(3)?,
+                        row.get::<_, String>(4)?,
+                    ))
+                })
+                .map_err(|e| e.to_string())?
+                .filter_map(|r| r.ok())
+                .collect();
+
+            if !symbols.is_empty() {
+                context.push_str("\n\n### Relevant symbols in project:\n");
+                for (path, name, stype, line, snippet) in &symbols {
+                    context.push_str(&format!(
+                        "- `{}` ({}) at {}:{} → `{}`\n",
+                        name, stype, path, line, snippet.trim()
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(context)
+}
+
