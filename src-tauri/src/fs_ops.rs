@@ -80,7 +80,18 @@ pub fn list_files(path: Option<String>) -> Result<Vec<FileEntry>, String> {
 }
 
 pub fn resolve_workspace_path(path: &str) -> Result<PathBuf, String> {
-    let requested = Path::new(path);
+    let mut cleaned = path.trim().replace('\\', "/");
+    if cleaned.starts_with("./") {
+        cleaned = cleaned[2..].to_string();
+    }
+    if cleaned.starts_with("workspace/") {
+        cleaned = cleaned[10..].to_string();
+    }
+    if cleaned.starts_with("workspace") && cleaned.len() == 9 {
+        cleaned = ".".to_string();
+    }
+
+    let requested = Path::new(&cleaned);
     let stays_relative = requested
         .components()
         .all(|component| matches!(component, Component::Normal(_) | Component::CurDir));
