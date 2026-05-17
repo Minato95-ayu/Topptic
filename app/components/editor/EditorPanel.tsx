@@ -34,13 +34,16 @@ export function EditorPanel() {
     setLiveContent,
     pendingDiff,
     acceptPendingDiff,
-    rejectPendingDiff
+    rejectPendingDiff,
+    openFiles,
+    dirtyFiles,
+    closeFile,
+    setSelectedFilePath
   } = useApp();
   const [status, setStatus] = useState('Ready');
   const [isBuilding, setIsBuilding] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [buildState, setBuildState] = useState<'idle' | 'compiling' | 'healing' | 'success' | 'error'>('idle');
-  const [isDirty, setIsDirty] = useState(false);
 
   // Export State
   const [showExportModal, setShowExportModal] = useState(false);
@@ -50,10 +53,7 @@ export function EditorPanel() {
   const [exportResult, setExportResult] = useState<{ success: boolean; message: string; path?: string } | null>(null);
 
   const selectedProject = projects.find(p => p.id === selectedProjectId);
-
-  useEffect(() => {
-    setIsDirty(false);
-  }, [selectedFilePath, fileContent]);
+  const isDirty = selectedFilePath ? !!dirtyFiles[selectedFilePath] : false;
 
   useEffect(() => {
     if (typeof navigator !== 'undefined') {
@@ -73,7 +73,6 @@ export function EditorPanel() {
       const formatted = await formatCode(selectedFilePath, currentVal);
       setFileContent(formatted);
       setLiveContent(formatted);
-      setIsDirty(false);
       setStatus('Formatted');
     } catch {
       setStatus('Error formatting');
@@ -85,7 +84,6 @@ export function EditorPanel() {
     setStatus('Saving...');
     try {
       await saveCurrentFile();
-      setIsDirty(false);
       setStatus('Saved');
     } catch {
       setStatus('Error saving file');
@@ -195,7 +193,16 @@ export function EditorPanel() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
-      <TabBar tabs={[{ id: '1', name: selectedFilePath.split('/').pop() || '', isDirty }]} activeTabId="1" />
+      <TabBar 
+        tabs={openFiles.map(path => ({
+          id: path,
+          name: path.split('/').pop() || path.split('\\').pop() || '',
+          isDirty: !!dirtyFiles[path]
+        }))} 
+        activeTabId={selectedFilePath || undefined}
+        onSelectTab={(path) => setSelectedFilePath(path)}
+        onCloseTab={(path) => closeFile(path)}
+      />
       <div className="flex items-center justify-between border-b border-slate-700/30 bg-slate-900/30 px-4 py-2">
         <div className="flex items-center gap-2">
           <Icons.FileText className="w-4 h-4 text-blue-400/70" />

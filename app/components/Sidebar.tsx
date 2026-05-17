@@ -14,7 +14,7 @@ export default function Sidebar() {
     projects, 
     setSelectedProjectId,
     selectedProjectId,
-    setSelectedFilePath
+    openFile
   } = useApp();
 
   const navItems = [
@@ -59,7 +59,7 @@ export default function Sidebar() {
         
         {activeNav === 'projects' && selectedProjectId && (
           <div className="mt-2 border-t border-slate-700/30 pt-2">
-            <FileExplorer onFileSelect={setSelectedFilePath} />
+            <FileExplorer onFileSelect={openFile} />
           </div>
         )}
       </div>
