@@ -68,7 +68,6 @@ print("Starting Hugging Face TRL SFTTrainer loop...")
 trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
-    dataset_text_field="text",
     max_seq_length=512,
     args=training_args,
 )
