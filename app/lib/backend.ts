@@ -142,3 +142,30 @@ export async function listenToExportLogs(callback: (log: string) => void) {
   });
   return unlisten;
 }
+
+export interface TerminalOutputPayload {
+  stdout: string | null;
+  stderr: string | null;
+  isExit: boolean;
+  exitCode: number | null;
+}
+
+export async function executeTerminalCommand(command: string, cwd?: string): Promise<string> {
+  try {
+    return await tauriInvoke<string>('execute_terminal_command', { command, cwd });
+  } catch (error) {
+    return String(error);
+  }
+}
+
+export async function listenToTerminalOutput(callback: (payload: TerminalOutputPayload) => void) {
+  if (typeof window === 'undefined' || !('__TAURI_INTERNALS__' in window)) {
+    return () => {};
+  }
+  const { listen } = await import('@tauri-apps/api/event');
+  const unlisten = await listen<TerminalOutputPayload>('terminal-output', (event) => {
+    callback(event.payload);
+  });
+  return unlisten;
+}
+

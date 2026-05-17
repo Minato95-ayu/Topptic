@@ -6,6 +6,7 @@ import { Button } from '@/app/components/common/Button';
 import { TabBar } from '@/app/components/editor/TabBar';
 import { DEFAULT_EDITOR_CODE } from '@/app/lib/constants';
 import { formatCode, writeFile, runBuild, exportProject, listenToExportLogs } from '@/app/lib/backend';
+import { TerminalPanel } from '@/app/components/editor/TerminalPanel';
 
 import { useApp } from '@/app/providers';
 import { getLanguageFromPath } from '@/app/lib/utils';
@@ -44,6 +45,7 @@ export function EditorPanel() {
   const [isBuilding, setIsBuilding] = useState(false);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const [buildState, setBuildState] = useState<'idle' | 'compiling' | 'healing' | 'success' | 'error'>('idle');
+  const [showTerminal, setShowTerminal] = useState(false);
 
   // Export State
   const [showExportModal, setShowExportModal] = useState(false);
@@ -217,6 +219,16 @@ export function EditorPanel() {
             <Button variant="secondary" size="sm" onClick={handleSave} disabled={!!pendingDiff}>
               Save
             </Button>
+            <Button 
+              variant={showTerminal ? "secondary" : "ghost"} 
+              size="sm" 
+              onClick={() => setShowTerminal(prev => !prev)} 
+              disabled={!!pendingDiff}
+              className="flex items-center gap-1.5"
+            >
+              <Icons.Terminal className="w-3.5 h-3.5" />
+              Terminal
+            </Button>
             <Button size="sm" onClick={handleBuild} disabled={isBuilding || !!pendingDiff} className="flex items-center gap-2">
                {isBuilding ? (
                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -321,6 +333,10 @@ export function EditorPanel() {
             />
           )}
         </div>
+
+        {showTerminal && (
+          <TerminalPanel onClose={() => setShowTerminal(false)} />
+        )}
 
         {/* Existing Build Tracker */}
         {buildState !== 'idle' && (

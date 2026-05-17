@@ -25,7 +25,8 @@ pub fn run() {
             commands::ai_chat,
             commands::format_code,
             commands::run_build,
-            commands::export_project
+            commands::export_project,
+            commands::execute_terminal_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running Topptic");
