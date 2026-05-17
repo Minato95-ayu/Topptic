@@ -50,7 +50,8 @@ export default function Sidebar() {
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <ProjectsList 
-          projects={projects} 
+          projects={projects}
+          selectedProjectId={selectedProjectId}
           onSelectProject={(id) => {
             setSelectedProjectId(id);
             setActiveNav('projects');

@@ -8,11 +8,17 @@ import type { Project } from '@/app/lib/types';
 
 interface ProjectsListProps {
   projects: Project[];
+  selectedProjectId?: string | null;
   onSelectProject?: (id: string) => void;
   onCreateProjectClick?: () => void;
 }
 
-export function ProjectsList({ projects, onSelectProject, onCreateProjectClick }: ProjectsListProps) {
+export function ProjectsList({ 
+  projects, 
+  selectedProjectId,
+  onSelectProject, 
+  onCreateProjectClick 
+}: ProjectsListProps) {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -28,18 +34,27 @@ export function ProjectsList({ projects, onSelectProject, onCreateProjectClick }
 
       {expanded && (
         <div className="space-y-2">
-          {projects.map((project) => (
-            <button
-              key={project.id}
-              type="button"
-              onClick={() => onSelectProject?.(project.id)}
-              className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-300 transition-colors flex items-center gap-2"
-            >
-              <Icons.Folder className="w-4 h-4" />
-              <span className="truncate">{project.name}</span>
-              <span className="ml-auto text-xs text-slate-500 capitalize">{project.language}</span>
-            </button>
-          ))}
+          {projects.map((project) => {
+            const isSelected = project.id === selectedProjectId;
+            return (
+              <button
+                key={project.id}
+                type="button"
+                onClick={() => onSelectProject?.(project.id)}
+                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 border-l-2 ${
+                  isSelected
+                    ? 'border-blue-500 bg-blue-500/10 text-blue-100 font-medium'
+                    : 'border-transparent text-slate-400 hover:bg-slate-800/50 hover:text-slate-300'
+                }`}
+              >
+                <Icons.Folder className={`w-4 h-4 ${isSelected ? 'text-blue-400' : 'text-slate-500'}`} />
+                <span className="truncate">{project.name}</span>
+                <span className={`ml-auto text-xs capitalize ${isSelected ? 'text-blue-300/80' : 'text-slate-500'}`}>
+                  {project.language}
+                </span>
+              </button>
+            );
+          })}
           <Button 
             variant="secondary" 
             size="sm" 
