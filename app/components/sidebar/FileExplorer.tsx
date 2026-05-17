@@ -543,61 +543,145 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
         </div>
       )}
 
-      {/* Custom Context Menu Overlay */}
+      {/* Custom Context Menu Overlay - VS Code Clone */}
       {contextMenu && contextMenu.node && (
         <div
-          className="fixed z-[9999] w-56 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-xs flex flex-col"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
+          className="fixed z-[9999] w-72 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-[13px] flex flex-col"
+          style={{ 
+            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 450 : 0), 
+            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 280 : 0) 
+          }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            onClick={() => {
-              setRenamingNode(contextMenu.node);
-              setRenameValue(contextMenu.node?.name || '');
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
-          >
-            <span>Rename...</span>
-            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">F2</span>
-          </button>
-
-          <button
-            onClick={() => {
-              void handleDelete(contextMenu.node!.path);
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
-          >
-            <span>Delete</span>
-            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Del</span>
-          </button>
-          
-          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
-
-          <button
-            onClick={() => {
-              void handleCopyPath(contextMenu.node!.path);
-              setContextMenu(null);
-            }}
-            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
-          >
-            <span>Copy Path</span>
-            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Shift+Alt+C</span>
-          </button>
-
-          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+          {/* Group 1: Create */}
+          {contextMenu.node.is_dir && (
+            <>
+              <button
+                onClick={() => {
+                  setShowNewFileInput(true);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+              >
+                <span>New File...</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewFolderInput(true);
+                  setContextMenu(null);
+                }}
+                className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+              >
+                <span>New Folder...</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => {
               void handleReveal(contextMenu.node!.path);
               setContextMenu(null);
             }}
-            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+            className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
           >
             <span>Reveal in File Explorer</span>
-            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Shift+Alt+R</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Shift+Alt+R</span>
           </button>
+          
+          {contextMenu.node.is_dir && (
+            <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+              <span>Open in Integrated Terminal</span>
+            </button>
+          )}
+
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          {/* Group 2: AI & Search */}
+          {contextMenu.node.is_dir && (
+            <>
+              <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+                <span>Find in Folder...</span>
+                <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Shift+Alt+F</span>
+              </button>
+              <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+                <span>Add Folder to Chat</span>
+              </button>
+            </>
+          )}
+
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          {/* Group 3: Clipboard */}
+          <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+            <span>Cut</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Ctrl+X</span>
+          </button>
+          <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+            <span>Copy</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Ctrl+C</span>
+          </button>
+          <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+            <span className="text-[#858585]">Paste</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Ctrl+V</span>
+          </button>
+
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          {/* Group 4: Paths */}
+          <button
+            onClick={() => {
+              void handleCopyPath(contextMenu.node!.path);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Copy Path</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Shift+Alt+C</span>
+          </button>
+          <button
+            onClick={() => {
+              void navigator.clipboard.writeText(contextMenu.node!.path.split(/[\\/]/).pop() || '');
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Copy Relative Path</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Ctrl+Shift+C</span>
+          </button>
+
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          {/* Group 5: Modify */}
+          <button
+            onClick={() => {
+              setRenamingNode(contextMenu.node);
+              setRenameValue(contextMenu.node?.name || '');
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Rename...</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">F2</span>
+          </button>
+          <button
+            onClick={() => {
+              void handleDelete(contextMenu.node!.path);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Delete</span>
+            <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Del</span>
+          </button>
+
+          {contextMenu.node.is_dir && (
+            <>
+              <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+              <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
+                <span>Add folder to Topptic Context</span>
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
