@@ -47,6 +47,14 @@ pub fn init_database(app: &AppHandle) -> Result<(), String> {
                 code_snippet TEXT NOT NULL,
                 FOREIGN KEY(project_id) REFERENCES projects(id)
             );
+
+            CREATE TABLE IF NOT EXISTS patch_history (
+                id TEXT PRIMARY KEY NOT NULL,
+                file_path TEXT NOT NULL,
+                backup_path TEXT NOT NULL,
+                operation TEXT NOT NULL, -- 'write' | 'ai_patch' | 'build_fix'
+                created_at TEXT NOT NULL
+            );
             ",
         )
         .map_err(|error| error.to_string())
@@ -247,4 +255,38 @@ pub fn index_file_symbols(
     }
 
     Ok(())
+}
+
+pub fn save_patch_record(
+    app: &AppHandle,
+    file_path: &str,
+    backup_path: &str,
+    operation: &str,
+) -> Result<(), String> {
+    let connection = open_connection(app)?;
+
+    connection
+        .execute(
+            "INSERT INTO patch_history (id, file_path, backup_path, operation, created_at) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![stable_id("patch"), file_path, backup_path, operation, now_timestamp()],
+        )
+        .map(|_| ())
+        .map_err(|error| error.to_string())
+}
+
+pub fn get_latest_patch(
+    app: &AppHandle,
+    file_path: &str,
+) -> Result<Option<String>, String> {
+    let connection = open_connection(app)?;
+
+    let mut stmt = connection
+        .prepare("SELECT backup_path FROM patch_history WHERE file_path = ?1 ORDER BY created_at DESC LIMIT 1")
+        .map_err(|e| e.to_string())?;
+
+    let result = stmt
+        .query_row(params![file_path], |row| row.get::<_, String>(0))
+        .ok();
+
+    Ok(result)
 }

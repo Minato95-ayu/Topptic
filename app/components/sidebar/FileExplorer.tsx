@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Icons } from '@/app/lib/icons';
-import { listFiles, writeFile, createDirectory } from '@/app/lib/backend';
+import { listFiles, writeFile, createDirectory, deleteFileOrFolder, renameFileOrFolder, revealInExplorer } from '@/app/lib/backend';
 import { useApp } from '@/app/providers';
 import type { FileEntry } from '@/app/lib/types';
 
@@ -112,6 +112,22 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
   
   const { selectedFilePath } = useApp();
 
+  // Context Menu states
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: FlattenedNode | null } | null>(null);
+  const [renamingNode, setRenamingNode] = useState<FlattenedNode | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, node: FlattenedNode) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, node });
+  };
+
   const handleCreateFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newValueName.trim()) return;
@@ -139,6 +155,49 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
       setLoadedDirs((prev) => ({ ...prev, [rootDir]: data }));
     } catch (err) {
       console.error('Failed to create directory:', err);
+    }
+  };
+
+  const handleRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renamingNode || !renameValue.trim() || renameValue === renamingNode.name) {
+      setRenamingNode(null);
+      return;
+    }
+    try {
+      await renameFileOrFolder(renamingNode.path, renameValue.trim());
+      setRenamingNode(null);
+      // Refresh tree
+      const data = await listFiles(rootDir);
+      setLoadedDirs((prev) => ({ ...prev, [rootDir]: data }));
+    } catch (err) {
+      console.error('Failed to rename:', err);
+    }
+  };
+
+  const handleDelete = async (path: string) => {
+    try {
+      await deleteFileOrFolder(path);
+      const data = await listFiles(rootDir);
+      setLoadedDirs((prev) => ({ ...prev, [rootDir]: data }));
+    } catch (err) {
+      console.error('Failed to delete:', err);
+    }
+  };
+
+  const handleReveal = async (path: string) => {
+    try {
+      await revealInExplorer(path);
+    } catch (err) {
+      console.error('Failed to reveal:', err);
+    }
+  };
+
+  const handleCopyPath = async (path: string) => {
+    try {
+      await navigator.clipboard.writeText(path);
+    } catch (err) {
+      console.error('Failed to copy path:', err);
     }
   };
 
@@ -431,6 +490,7 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
                           onFileSelect?.(node.path);
                         }
                       }}
+                      onContextMenu={(e) => handleContextMenu(e, node)}
                       style={{ paddingLeft: `${node.level * 16 + 12}px` }}
                       className={`w-full h-full flex items-center gap-2 px-3 py-1 text-sm transition-all group border-l-2 text-left ${
                         isSelected
@@ -456,13 +516,88 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
                           {getFileIcon(node.name)}
                         </div>
                       )}
-                      <span className="truncate flex-1 font-mono text-xs">{node.name}</span>
+                      {renamingNode?.path === node.path ? (
+                        <form 
+                          onSubmit={handleRename}
+                          className="flex-1 flex"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            autoFocus
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onBlur={() => setRenamingNode(null)}
+                            onKeyDown={(e) => e.key === 'Escape' && setRenamingNode(null)}
+                            className="flex-1 bg-slate-950 border border-blue-500 text-slate-200 text-xs font-mono px-1 py-0.5 outline-none rounded"
+                          />
+                        </form>
+                      ) : (
+                        <span className="truncate flex-1 font-mono text-xs">{node.name}</span>
+                      )}
                     </button>
                   </div>
                 );
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Custom Context Menu Overlay */}
+      {contextMenu && contextMenu.node && (
+        <div
+          className="fixed z-[9999] w-56 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-xs flex flex-col"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              setRenamingNode(contextMenu.node);
+              setRenameValue(contextMenu.node?.name || '');
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Rename...</span>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">F2</span>
+          </button>
+
+          <button
+            onClick={() => {
+              void handleDelete(contextMenu.node!.path);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Delete</span>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Del</span>
+          </button>
+          
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          <button
+            onClick={() => {
+              void handleCopyPath(contextMenu.node!.path);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Copy Path</span>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Shift+Alt+C</span>
+          </button>
+
+          <div className="h-[1px] bg-[#454545] my-1 mx-2" />
+
+          <button
+            onClick={() => {
+              void handleReveal(contextMenu.node!.path);
+              setContextMenu(null);
+            }}
+            className="w-full text-left px-6 py-1.5 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group"
+          >
+            <span>Reveal in File Explorer</span>
+            <span className="text-[10px] text-slate-500 group-hover:text-slate-300">Shift+Alt+R</span>
+          </button>
         </div>
       )}
     </div>

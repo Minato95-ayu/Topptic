@@ -47,22 +47,33 @@ pub fn read_file(request: FileReadRequest) -> Result<String, String> {
     fs::read_to_string(path).map_err(|error| error.to_string())
 }
 
-pub fn write_file(request: FileWriteRequest) -> Result<(), String> {
+pub fn write_file(request: FileWriteRequest) -> Result<String, String> {
     let path = resolve_workspace_path(&request.path)?;
 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
 
+    let mut backup_path_str = String::new();
     if path.exists() {
-        let mut backup_path = path.clone();
-        backup_path.set_extension("bak");
-        let _ = fs::copy(&path, backup_path);
+        // Create proper .topptic/backups/ directory for rollback history
+        let backup_dir = workspace_root()?.parent().unwrap_or(std::path::Path::new(".")).join(".topptic").join("backups");
+        fs::create_dir_all(&backup_dir).map_err(|e| e.to_string())?;
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        let file_name = path.file_name().unwrap_or_default().to_string_lossy();
+        let backup_file = backup_dir.join(format!("{}_{}", timestamp, file_name));
+        let _ = fs::copy(&path, &backup_file);
+        backup_path_str = backup_file.to_string_lossy().to_string();
     }
 
     let tmp_path = path.with_extension("tmp");
     fs::write(&tmp_path, request.content).map_err(|error| error.to_string())?;
-    fs::rename(&tmp_path, path).map_err(|error| error.to_string())
+    fs::rename(&tmp_path, path).map_err(|error| error.to_string())?;
+    Ok(backup_path_str)
 }
 
 pub fn list_files(path: Option<String>) -> Result<Vec<FileEntry>, String> {
@@ -235,4 +246,57 @@ pub fn log_failure(working_dir: &std::path::Path, command: &str, error: &str) ->
     let log = format!("\n## Failure [{}]\n**Command:** `{}`\n**Error:**\n```\n{}\n```\n", now, command, error);
     
     file.write_all(log.as_bytes()).map_err(|e| e.to_string())
+}
+
+pub fn delete_file_or_folder(path: &str) -> Result<(), String> {
+    let resolved = resolve_workspace_path(path)?;
+    if !resolved.exists() {
+        return Err(format!("Path not found: {}", path));
+    }
+    if resolved.is_dir() {
+        fs::remove_dir_all(resolved).map_err(|e| e.to_string())
+    } else {
+        fs::remove_file(resolved).map_err(|e| e.to_string())
+    }
+}
+
+pub fn rename_file_or_folder(old_path: &str, new_name: &str) -> Result<(), String> {
+    let resolved_old = resolve_workspace_path(old_path)?;
+    if !resolved_old.exists() {
+        return Err(format!("Path not found: {}", old_path));
+    }
+    let parent = resolved_old.parent().ok_or("Cannot rename root")?;
+    let resolved_new = parent.join(new_name);
+    fs::rename(resolved_old, resolved_new).map_err(|e| e.to_string())
+}
+
+pub fn reveal_in_explorer(path: &str) -> Result<(), String> {
+    let resolved = resolve_workspace_path(path)?;
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg("/select,")
+            .arg(resolved.to_string_lossy().into_owned())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg("-R")
+            .arg(resolved.to_string_lossy().into_owned())
+            .spawn()
+            .map_err(|e| e.to_string())?;
+    }
+    #[cfg(target_os = "linux")]
+    {
+        // For linux, there's no standard cross-DE select, so we just open the parent folder
+        if let Some(parent) = resolved.parent() {
+            std::process::Command::new("xdg-open")
+                .arg(parent.to_string_lossy().into_owned())
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
 }

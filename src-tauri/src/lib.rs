@@ -35,7 +35,13 @@ pub fn run() {
             commands::search_workspace_rag,
             commands::start_vertex_training,
             commands::open_workspace_folder,
-            commands::run_git_command
+            commands::run_git_command,
+            commands::rollback_patch,
+            commands::list_mcp_servers,
+            commands::register_mcp_server,
+            commands::delete_file_or_folder,
+            commands::rename_file_or_folder,
+            commands::reveal_in_explorer
         ])
         .run(tauri::generate_context!())
         .expect("error while running Topptic");

@@ -180,3 +180,15 @@ export async function searchWorkspaceRag(query: string): Promise<string> {
     return `Error searching workspace: ${String(error)}`;
   }
 }
+
+export async function deleteFileOrFolder(path: string): Promise<void> {
+  return tauriInvoke('delete_file_or_folder', { path });
+}
+
+export async function renameFileOrFolder(oldPath: string, newName: string): Promise<void> {
+  return tauriInvoke('rename_file_or_folder', { oldPath, newName });
+}
+
+export async function revealInExplorer(path: string): Promise<void> {
+  return tauriInvoke('reveal_in_explorer', { path });
+}

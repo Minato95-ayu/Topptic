@@ -47,8 +47,11 @@ pub fn read_file(request: FileReadRequest) -> Result<String, String> {
 pub fn write_file(app: tauri::AppHandle, request: FileWriteRequest) -> Result<(), String> {
     let content = request.content.clone();
     let path = request.path.clone();
-    fs_ops::write_file(request)?;
+    let backup_path = fs_ops::write_file(request)?;
     let _ = crate::db::index_file_symbols(&app, "workspace", &path, &content);
+    if !backup_path.is_empty() {
+        let _ = crate::db::save_patch_record(&app, &path, &backup_path, "write");
+    }
     Ok(())
 }
 
@@ -417,4 +420,86 @@ pub fn run_git_command(
     Ok(stdout)
 }
 
+#[tauri::command]
+pub fn rollback_patch(app: tauri::AppHandle, file_path: String) -> Result<String, String> {
+    let backup = crate::db::get_latest_patch(&app, &file_path)?
+        .ok_or_else(|| format!("No backup found for: {}", file_path))?;
+
+    let backup_path = std::path::Path::new(&backup);
+    if !backup_path.exists() {
+        return Err(format!("Backup file missing on disk: {}", backup));
+    }
+
+    let target = fs_ops::resolve_workspace_path(&file_path)?;
+    std::fs::copy(backup_path, &target).map_err(|e| e.to_string())?;
+
+    Ok(format!("Restored {} from backup: {}", file_path, backup))
+}
+
+#[tauri::command]
+pub fn list_mcp_servers(project_path: String) -> Result<String, String> {
+    let config_path = std::path::Path::new(&project_path)
+        .join(".topptic")
+        .join("mcp_servers.json");
+
+    if !config_path.exists() {
+        // Return empty array if config doesn't exist yet
+        return Ok("[]".to_string());
+    }
+
+    std::fs::read_to_string(&config_path).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn register_mcp_server(
+    project_path: String,
+    name: String,
+    url: String,
+    tools: Vec<String>,
+) -> Result<String, String> {
+    let config_dir = std::path::Path::new(&project_path).join(".topptic");
+    std::fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
+
+    let config_path = config_dir.join("mcp_servers.json");
+
+    // Load existing servers or start fresh
+    let mut servers: Vec<serde_json::Value> = if config_path.exists() {
+        let content = std::fs::read_to_string(&config_path).map_err(|e| e.to_string())?;
+        serde_json::from_str(&content).unwrap_or_default()
+    } else {
+        vec![]
+    };
+
+    // Append new server entry
+    servers.push(serde_json::json!({
+        "name": name,
+        "url": url,
+        "tools": tools,
+        "registered_at": std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis()
+            .to_string()
+    }));
+
+    let json_str = serde_json::to_string_pretty(&servers).map_err(|e| e.to_string())?;
+    std::fs::write(&config_path, &json_str).map_err(|e| e.to_string())?;
+
+    Ok(format!("Registered MCP server '{}' with {} tools", name, tools.len()))
+}
+
+#[tauri::command]
+pub fn delete_file_or_folder(path: String) -> Result<(), String> {
+    crate::fs_ops::delete_file_or_folder(&path)
+}
+
+#[tauri::command]
+pub fn rename_file_or_folder(old_path: String, new_name: String) -> Result<(), String> {
+    crate::fs_ops::rename_file_or_folder(&old_path, &new_name)
+}
+
+#[tauri::command]
+pub fn reveal_in_explorer(path: String) -> Result<(), String> {
+    crate::fs_ops::reveal_in_explorer(&path)
+}
 
