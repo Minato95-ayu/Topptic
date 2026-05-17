@@ -239,8 +239,16 @@ fn build_chat_prompt(request: &AiChatRequest) -> String {
         .as_ref()
         .filter(|context| !context.trim().is_empty())
     {
+        // Enforce strict memory truncation (1200 characters limit = ~300 tokens max)
+        let truncated_context = if context.len() > 1200 {
+            let half = &context[..1200];
+            format!("{}...\n[Truncated by Topptic Engine for low-RAM efficiency]", half)
+        } else {
+            context.to_string()
+        };
+
         prompt.push_str("\n\nCurrent Monaco editor code:\n```");
-        prompt.push_str(context);
+        prompt.push_str(&truncated_context);
         prompt.push_str("\n```");
     }
 
@@ -256,9 +264,17 @@ fn build_suggestion_prompt(request: &AiSuggestRequest) -> String {
         .unwrap_or("Find bugs, suggest fixes, and improve this code.");
     let file_path = request.file_path.as_deref().unwrap_or("unknown file");
 
+    // Enforce strict memory truncation for autocomplete (1200 characters limit = ~300 tokens max)
+    let truncated_code = if request.code.len() > 1200 {
+        let half = &request.code[..1200];
+        format!("{}...\n[Truncated by Topptic Engine for low-RAM efficiency]", half)
+    } else {
+        request.code.to_string()
+    };
+
     format!(
         "You are Topptic's offline compiler and code-fix assistant.\nFile: {file_path}\nTask: {instruction}\nReturn concise suggestions and corrected snippets when useful.\n\nCode:\n```text\n{}\n```",
-        request.code
+        truncated_code
     )
 }
 

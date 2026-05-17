@@ -30,6 +30,12 @@ pub fn init_database(app: &AppHandle) -> Result<(), String> {
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(project_id) REFERENCES projects(id)
             );
+
+            CREATE VIRTUAL TABLE IF NOT EXISTS project_memory USING fts5(
+                file_path UNINDEXED, 
+                file_content, 
+                file_imports
+            );
             ",
         )
         .map_err(|error| error.to_string())

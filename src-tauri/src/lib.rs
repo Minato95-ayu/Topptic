@@ -9,6 +9,10 @@ mod models;
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            // Force strict low-RAM constraints for Ollama backend
+            std::env::set_var("OLLAMA_NUM_PARALLEL", "1");
+            std::env::set_var("OLLAMA_MAX_LOADED_MODELS", "1");
+            
             db::init_database(app.handle())
                 .map_err(|error| std::io::Error::new(std::io::ErrorKind::Other, error))?;
             Ok(())
