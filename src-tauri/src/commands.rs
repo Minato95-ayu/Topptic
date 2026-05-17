@@ -49,13 +49,21 @@ pub fn write_file(request: FileWriteRequest) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn ai_chat(request: AiChatRequest) -> AiChatResponse {
-    ai::chat(request)
+pub async fn ai_chat(request: AiChatRequest) -> Result<AiChatResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(ai::chat(request))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn ai_suggest(request: AiSuggestRequest) -> AiSuggestResponse {
-    ai::suggest(request)
+pub async fn ai_suggest(request: AiSuggestRequest) -> Result<AiSuggestResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(ai::suggest(request))
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -74,13 +82,21 @@ pub fn search_workspace_rag(query: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn run_build(request: BuildRequest) -> Result<BuildResponse, String> {
-    build_runner::run_build(request)
+pub async fn run_build(request: BuildRequest) -> Result<BuildResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        build_runner::run_build(request)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
-pub fn export_project(app: AppHandle, request: ExportRequest) -> Result<ExportResponse, String> {
-    crate::build_engine::export_project(app, request)
+pub async fn export_project(app: AppHandle, request: ExportRequest) -> Result<ExportResponse, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        crate::build_engine::export_project(app, request)
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
