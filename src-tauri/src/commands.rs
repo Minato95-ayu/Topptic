@@ -2,8 +2,8 @@ use crate::{
     ai, build_runner, db, fs_ops,
     models::{
         AiChatRequest, AiChatResponse, AiSuggestRequest, AiSuggestResponse, BackendStatus,
-        BuildRequest, BuildResponse, CreateProjectRequest, FileEntry, FileReadRequest,
-        FileWriteRequest, FormatCodeRequest, Project,
+        BuildRequest, BuildResponse, CreateProjectRequest, ExportRequest, ExportResponse,
+        FileEntry, FileReadRequest, FileWriteRequest, FormatCodeRequest, Project,
     },
 };
 use tauri::AppHandle;
