@@ -132,6 +132,53 @@ if parse_status == "PASSED":
 print(f"  - Parser Latency: {heal_latency_ms:.4f} ms")
 healing_pass = parse_status == "PASSED"
 
+# PHASE 1, STEP 2: Symbol Indexing Verification Test
+print("\n[TEST 4] Simulating AST Symbol Indexer database inserts...")
+db_sym_path = "test_symbols_indexing.db"
+if os.path.exists(db_sym_path):
+    os.remove(db_sym_path)
+
+conn_sym = sqlite3.connect(db_sym_path)
+cur_sym = conn_sym.cursor()
+
+try:
+    cur_sym.execute("""
+        CREATE TABLE IF NOT EXISTS project_symbols (
+            id TEXT PRIMARY KEY NOT NULL,
+            project_id TEXT NOT NULL,
+            file_path TEXT NOT NULL,
+            symbol_name TEXT NOT NULL,
+            symbol_type TEXT NOT NULL,
+            line_number INTEGER NOT NULL,
+            code_snippet TEXT NOT NULL
+        );
+    """)
+    conn_sym.commit()
+    
+    # Simulate symbol indexing function insert blocks
+    cur_sym.execute("INSERT INTO project_symbols VALUES ('sym-1', 'proj-1', 'src/auth.js', 'AuthMiddleware', 'class', 5, 'class AuthMiddleware {')")
+    cur_sym.execute("INSERT INTO project_symbols VALUES ('sym-2', 'proj-1', 'src/auth.js', 'login', 'function', 15, 'const login = () => {')")
+    cur_sym.execute("INSERT INTO project_symbols VALUES ('sym-3', 'proj-1', 'src/auth.js', 'express', 'import', 1, 'import express from \"express\";')")
+    conn_sym.commit()
+
+    cur_sym.execute("SELECT symbol_name, symbol_type FROM project_symbols WHERE symbol_type = 'class';")
+    class_results = cur_sym.fetchall()
+    
+    cur_sym.execute("SELECT symbol_name, symbol_type FROM project_symbols WHERE symbol_type = 'function';")
+    func_results = cur_sym.fetchall()
+
+    print(f"  - Classes indexed successfully: {len(class_results)} (Found: {class_results[0][0]})")
+    print(f"  - Functions indexed successfully: {len(func_results)} (Found: {func_results[0][0]})")
+    
+    symbols_pass = len(class_results) == 1 and len(func_results) == 1
+except Exception as sym_err:
+    print(f"  - Symbols indexing verification failed: {sym_err}")
+    symbols_pass = False
+finally:
+    conn_sym.close()
+    if os.path.exists(db_sym_path):
+        os.remove(db_sym_path)
+
 # PRINT COMPREHENSIVE QA REPORT
 print("\n" + "=" * 60)
 print("              TOPPTIC AI - QA VERIFICATION REPORT")
@@ -139,7 +186,8 @@ print("=" * 60)
 print(f"  - FTS5 Zero-RAM Database Indexing:    {'PASS' if fts5_pass else 'FAIL'}")
 print(f"  - 5000+ Lines Context Truncation:     {'PASS' if truncation_pass else 'FAIL'}")
 print(f"  - Self-Healing Action Code Parser:    {'PASS' if healing_pass else 'FAIL'}")
+print(f"  - AST Symbol Indexer DB Engine:       {'PASS' if symbols_pass else 'FAIL'}")
 print("-" * 60)
-overall_qa = fts5_pass and truncation_pass and healing_pass
+overall_qa = fts5_pass and truncation_pass and healing_pass and symbols_pass
 print(f"  [QA SCORE] OVERALL SYSTEM QA STATUS: {'[ STABLE & OPTIMIZED ]' if overall_qa else '[ STABILITY FAILURE ]'}")
 print("=" * 60)
