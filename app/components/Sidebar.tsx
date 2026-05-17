@@ -63,7 +63,10 @@ export default function Sidebar() {
         
         {activeNav === 'projects' && selectedProjectId && (
           <div className="mt-2 border-t border-slate-700/30 pt-2">
-            <FileExplorer onFileSelect={openFile} />
+            <FileExplorer 
+              projectPath={projects.find(p => p.id === selectedProjectId)?.path}
+              onFileSelect={openFile} 
+            />
           </div>
         )}
       </div>

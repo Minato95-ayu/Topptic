@@ -8,6 +8,7 @@ import type { FileEntry } from '@/app/lib/types';
 
 interface FileExplorerProps {
   onFileSelect?: (path: string) => void;
+  projectPath?: string;
 }
 
 interface FlattenedNode {
@@ -41,11 +42,14 @@ const shouldIgnore = (name: string) => {
   return false;
 };
 
-export function FileExplorer({ onFileSelect }: FileExplorerProps) {
+export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
   const [loadedDirs, setLoadedDirs] = useState<Record<string, FileEntry[]>>({});
   const [expandedPaths, setExpandedPaths] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Determine the dynamic root subdirectory of this specific project inside Topptic's workspace
+  const rootDir = projectPath ? projectPath.split(/[/\\]/).pop() || '.' : '.';
 
   // File and Folder Creation states
   const [showNewFileInput, setShowNewFileInput] = useState(false);
@@ -58,11 +62,12 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
     e.preventDefault();
     if (!newValueName.trim()) return;
     try {
-      await writeFile({ path: newValueName.trim(), content: '' });
+      const relativePath = rootDir === '.' ? newValueName.trim() : `${rootDir}/${newValueName.trim()}`;
+      await writeFile({ path: relativePath, content: '' });
       setNewValueName('');
       setShowNewFileInput(false);
-      const data = await listFiles('.');
-      setLoadedDirs((prev) => ({ ...prev, '.': data }));
+      const data = await listFiles(rootDir);
+      setLoadedDirs((prev) => ({ ...prev, [rootDir]: data }));
     } catch (err) {
       console.error('Failed to create file:', err);
     }
@@ -72,11 +77,12 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
     e.preventDefault();
     if (!newValueName.trim()) return;
     try {
-      await createDirectory(newValueName.trim());
+      const relativePath = rootDir === '.' ? newValueName.trim() : `${rootDir}/${newValueName.trim()}`;
+      await createDirectory(relativePath);
       setNewValueName('');
       setShowNewFolderInput(false);
-      const data = await listFiles('.');
-      setLoadedDirs((prev) => ({ ...prev, '.': data }));
+      const data = await listFiles(rootDir);
+      setLoadedDirs((prev) => ({ ...prev, [rootDir]: data }));
     } catch (err) {
       console.error('Failed to create directory:', err);
     }
@@ -89,14 +95,14 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
 
   const rowHeight = 32; // Row spacing in pixels matching the SaaS dark styling
 
-  // 1. Scan and register the workspace root directory on mount
+  // 1. Scan and register the active project directory on mount and when selected project shifts
   useEffect(() => {
     const fetchRoot = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await listFiles('.');
-        setLoadedDirs({ '.': data });
+        const data = await listFiles(rootDir);
+        setLoadedDirs({ [rootDir]: data });
       } catch (err) {
         setError('Failed to scan workspace root');
         console.error(err);
@@ -106,7 +112,7 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
     };
 
     void fetchRoot();
-  }, []);
+  }, [rootDir]);
 
   // 2. High-performance scroll tracking for virtual calculations
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -165,7 +171,7 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
       }
     };
 
-    processDir('.', 0);
+    processDir(rootDir, 0);
     return list;
   };
 
@@ -229,8 +235,8 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
           <button 
             onClick={async () => {
               try {
-                const data = await listFiles('.');
-                setLoadedDirs((prev) => ({ ...prev, '.': data }));
+                const data = await listFiles(rootDir);
+                setLoadedDirs((prev) => ({ ...prev, [rootDir]: data }));
               } catch (err) {
                 console.error('Refresh failed:', err);
               }
