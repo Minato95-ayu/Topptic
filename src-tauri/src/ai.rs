@@ -23,6 +23,53 @@ pub fn detect_ai_engine() -> String {
     }
 }
 
+fn generate_smart_mock_response(query: &str, error: &str) -> String {
+    let lowercase_query = query.to_lowercase();
+    let display_error = if error.contains("unable to allocate CPU buffer") {
+        "Ollama has low free memory. (Tip: Close other apps or restart Ollama)"
+    } else {
+        error
+    };
+    
+    let mut response = format!(
+        "⚠️ **[Offline Helper Mode Active]**\n*(Ollama RAM lock: `{}`)*\n\n",
+        display_error
+    );
+
+    if lowercase_query.contains("hello") || lowercase_query.contains("hi") || lowercase_query.contains("hey") {
+        response.push_str("Hello! Main aapka offline Topptic Helper hoon. Main pure interface aur files ke sath ready hoon!\n\nAap mujhe niche diye presets use karke koi bhi task de sakte hain:\n\n* **Fix Bugs:** Apne code ki errors thik karein.\n* **Optimize:** Performance improve karein.\n* **Write Tests:** Unit tests generate karein.");
+    } else if lowercase_query.contains("code") || lowercase_query.contains("write") || lowercase_query.contains("create") || lowercase_query.contains("thum") || lowercase_query.contains("sakte") || lowercase_query.contains("termnal") || lowercase_query.contains("terminal") || lowercase_query.contains("file") || lowercase_query.contains("folder") {
+        response.push_str("Bilkul! Maine aapke liye ek agentic action block taiyar kiya hai jo directly aapke workspace mein code create aur test kar sakta hai!\n\nNiche diye Action Card par **Approve Action** button click karein, aur ye Calculator code automatically aapke editor mein save ho jayega! 🚀\n\n\
+        <topptic_action>\n\
+        {\n\
+          \"tool\": \"write_file\",\n\
+          \"parameters\": {\n\
+            \"path\": \"anno/calculator.py\",\n\
+            \"content\": \"# Dynamic Offline Calculator Code\\nclass Calculator:\\n    def add(self, a, b): return a + b\\n    def subtract(self, a, b): return a - b\\n    def multiply(self, a, b): return a * b\\n    def divide(self, a, b):\\n        if b == 0: return 'Error: Div by Zero'\\n        return a / b\\n\\ncalc = Calculator()\\nprint('Calculator loaded! 2 + 3 =', calc.add(2, 3))\"\n\
+          },\n\
+          \"rationale\": \"Creating a fresh Python Calculator program inside your active workspace folder.\"\n\
+        }\n\
+        </topptic_action>\n\n\
+        Aap upar diye naye file card ko approve karke direct test kar sakte hain!");
+    } else {
+        response.push_str("Hello! Main aapki help ke liye ready hoon. Aap upar diye action buttons (**Fix Bugs**, **Optimize**, **Write Tests**) par click karke direct code analysis run kar sakte hain, ya specific instructions likh sakte hain!");
+    }
+
+    response
+}
+
+fn generate_smart_mock_suggestions(instruction: &str, error: &str) -> String {
+    let display_error = if error.contains("unable to allocate CPU buffer") {
+        "Ollama has low free memory."
+    } else {
+        error
+    };
+    format!(
+        "⚠️ **[Offline Helper Mode Active]**\n*(Ollama: `{}`)*\n\nHere are offline code suggestions for you:\n\n1. **Verify HTML/CSS link tags:** Ensure your stylesheet and script files are mapped to the correct relative path.\n2. **Check for script syntax:** Verify all brackets, tags, and braces are closed properly.\n3. **Use the Build panel:** Press the 'Build' button on the toolbar to check for raw layout alerts!",
+        display_error
+    )
+}
+
 pub fn chat(request: AiChatRequest) -> AiChatResponse {
     let prompt = build_chat_prompt(&request);
     let model = resolve_model(request.model.as_deref());
@@ -33,11 +80,8 @@ pub fn chat(request: AiChatRequest) -> AiChatResponse {
             message,
         },
         Err(error) => AiChatResponse {
-            engine: "mock".to_string(),
-            message: format!(
-                "Local AI is not available yet ({error}). Backend received: \"{}\".",
-                request.message
-            ),
+            engine: "offline-helper".to_string(),
+            message: generate_smart_mock_response(&request.message, &error),
         },
     }
 }
@@ -52,11 +96,8 @@ pub fn suggest(request: AiSuggestRequest) -> AiSuggestResponse {
             suggestions,
         },
         Err(error) => AiSuggestResponse {
-            engine: "mock".to_string(),
-            suggestions: format!(
-                "Local AI is not available yet ({error}). I received {} bytes of code for offline analysis.",
-                request.code.len()
-            ),
+            engine: "offline-helper".to_string(),
+            suggestions: generate_smart_mock_suggestions(request.instruction.as_deref().unwrap_or(""), &error),
         },
     }
 }
@@ -132,7 +173,23 @@ fn complete_with_llama_cpp(prompt: &str) -> Result<String, String> {
 
 fn build_chat_prompt(request: &AiChatRequest) -> String {
     let mut prompt = String::from(
-        "You are Topptic's offline coding assistant. Be concise, practical, and return actionable code guidance.",
+        "You are Topptic's offline agentic coding assistant. You can create/update files and execute terminal commands!\n\
+        Whenever the user asks you to write code, create files, or run commands, you MUST trigger an action card by wrapping a JSON payload inside <topptic_action> and </topptic_action> tags.\n\n\
+        Available tools:\n\
+        1. write_file: Parameters: { \"path\": \"relative_path\", \"content\": \"file_code\" }\n\
+        2. execute_command: Parameters: { \"command\": \"cli_command\", \"cwd\": \"relative_directory\" }\n\n\
+        Format example:\n\
+        <topptic_action>\n\
+        {\n\
+          \"tool\": \"write_file\",\n\
+          \"parameters\": {\n\
+            \"path\": \"anno/home.html\",\n\
+            \"content\": \"<!DOCTYPE html>\\n<html>...</html>\"\n\
+          },\n\
+          \"rationale\": \"Creating the landing page.\"\n\
+        }\n\
+        </topptic_action>\n\n\
+        Respond in concise Hinglish if asked in Hinglish.",
     );
 
     if let Some(file_path) = request.file_path.as_ref().filter(|value| !value.trim().is_empty()) {

@@ -50,7 +50,7 @@ const getFileIcon = (filename: string) => {
     case 'htm':
       return (
         <svg className="w-3.5 h-3.5 text-orange-500 fill-current animate-in zoom-in duration-300" viewBox="0 0 24 24">
-          <path d="M12 2L2 22h20L12 2zm1 16h-2v-2h2v2zm0-4h-2V8h2v6z" />
+          <path d="M12 2L2 5l1.8 13.5L12 22l6.2-3.5L20 5z M17 9H9.3l.3 2H17l-.5 4.5l-4.5 1.5l-4.5-1.5l-.2-1.5h2l.1.7l2.6.9l2.6-.9l.2-2.2H7.5l-.5-4.5h10.5z" />
         </svg>
       );
     case 'css':

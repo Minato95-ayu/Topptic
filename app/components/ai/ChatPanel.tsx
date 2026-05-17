@@ -133,7 +133,26 @@ export function ChatPanel() {
     }
 
     // Construct high-context LLM prompt with Monaco active buffers and RAG context
-    let promptContext = "You are Topptic's offline coding assistant. Be concise, practical, and return actionable code guidance.";
+    let promptContext = `You are Topptic's offline agentic coding assistant. You can create/update files and execute terminal commands!
+Whenever the user asks you to write code, create files, or run commands, you MUST trigger an action card by wrapping a JSON payload inside <topptic_action> and </topptic_action> tags.
+
+Available tools:
+1. write_file: Parameters: { "path": "relative_path", "content": "file_code" }
+2. execute_command: Parameters: { "command": "cli_command", "cwd": "relative_directory" }
+
+Format example:
+<topptic_action>
+{
+  "tool": "write_file",
+  "parameters": {
+    "path": "anno/home.html",
+    "content": "<!DOCTYPE html>\\n<html>...</html>"
+  },
+  "rationale": "Creating the home page."
+}
+</topptic_action>
+
+Respond in concise Hinglish if asked in Hinglish.`;
     if (ragContext) {
       promptContext += `\n\n${ragContext}`;
     }
