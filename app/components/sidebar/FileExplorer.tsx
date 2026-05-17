@@ -546,10 +546,14 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
       {/* Custom Context Menu Overlay - VS Code Clone */}
       {contextMenu && contextMenu.node && (
         <div
-          className="fixed z-[9999] w-72 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-[13px] flex flex-col"
+          className="fixed z-[9999] w-72 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-[13px] flex flex-col overflow-y-auto"
           style={{ 
-            top: Math.min(contextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 450 : 0), 
-            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 280 : 0) 
+            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 290 : 0),
+            maxHeight: '80vh',
+            ...(typeof window !== 'undefined' && contextMenu.y > window.innerHeight / 2
+              ? { bottom: window.innerHeight - contextMenu.y }
+              : { top: contextMenu.y }
+            )
           }}
           onClick={(e) => e.stopPropagation()}
         >
