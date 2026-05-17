@@ -175,7 +175,17 @@ const MessageContent = ({ content, onApply }: { content: string, onApply: (code:
 };
 
 export function ChatPanel() {
-  const { selectedFilePath, getLiveContent, setPendingDiff, selectedModel, pendingAutoFix, setPendingAutoFix, setShowChat } = useApp();
+  const { 
+    selectedFilePath, 
+    getLiveContent, 
+    setPendingDiff, 
+    selectedModel, 
+    pendingAutoFix, 
+    setPendingAutoFix, 
+    setShowChat,
+    autonomousMode,
+    setAutonomousMode
+  } = useApp();
   const [messages, setMessages] = useState<AIChatMessage[]>([
     {
       id: '1',
@@ -411,9 +421,23 @@ Respond in concise Hinglish if asked in Hinglish.`;
           </div>
           <p className="text-[9px] text-slate-500 font-mono mt-0.5 select-none">Topptic Engine: {selectedModel || 'antigravity'}</p>
         </div>
-        <div className="flex items-center gap-1">
-          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-ping" />
-          <span className="text-[9px] font-bold text-purple-400/90 uppercase tracking-wider select-none">Active</span>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex items-center gap-1">
+            <div className={`w-1.5 h-1.5 rounded-full ${autonomousMode ? 'bg-red-500 animate-ping' : 'bg-purple-400 animate-pulse'}`} />
+            <span className={`text-[9px] font-bold uppercase tracking-wider select-none ${autonomousMode ? 'text-red-400' : 'text-purple-400'}`}>
+              {autonomousMode ? 'Auto-Pilot' : 'Active'}
+            </span>
+          </div>
+          <button 
+            onClick={() => setAutonomousMode(!autonomousMode)}
+            className={`text-[8px] px-1.5 py-0.5 rounded border uppercase tracking-wider transition-colors ${
+              autonomousMode 
+                ? 'bg-red-500/20 border-red-500/50 text-red-300 hover:bg-red-500/30' 
+                : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            {autonomousMode ? 'Auto: ON' : 'Auto: OFF'}
+          </button>
         </div>
       </div>
 

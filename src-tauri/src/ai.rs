@@ -38,7 +38,7 @@ fn generate_smart_mock_response(query: &str, error: &str) -> String {
 
     if lowercase_query.contains("hello") || lowercase_query.contains("hi") || lowercase_query.contains("hey") {
         response.push_str("Hello! Main aapka offline Topptic Helper hoon. Main pure interface aur files ke sath ready hoon!\n\nAap mujhe niche diye presets use karke koi bhi task de sakte hain:\n\n* **Fix Bugs:** Apne code ki errors thik karein.\n* **Optimize:** Performance improve karein.\n* **Write Tests:** Unit tests generate karein.");
-    } else if lowercase_query.contains("code") || lowercase_query.contains("write") || lowercase_query.contains("create") || lowercase_query.contains("thum") || lowercase_query.contains("sakte") || lowercase_query.contains("termnal") || lowercase_query.contains("terminal") || lowercase_query.contains("file") || lowercase_query.contains("folder") {
+    } else if lowercase_query.contains("code") || lowercase_query.contains("write") || lowercase_query.contains("create") || lowercase_query.contains("bana") || lowercase_query.contains("caculater") || lowercase_query.contains("calculator") || lowercase_query.contains("thum") || lowercase_query.contains("sakte") || lowercase_query.contains("make") || lowercase_query.contains("terminal") || lowercase_query.contains("file") || lowercase_query.contains("folder") {
         response.push_str("Bilkul! Maine aapke liye ek agentic action block taiyar kiya hai jo directly aapke workspace mein code create aur test kar sakta hai!\n\nNiche diye Action Card par **Approve Action** button click karein, aur ye Calculator code automatically aapke editor mein save ho jayega! 🚀\n\n\
         <topptic_action>\n\
         {\n\

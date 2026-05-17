@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Icons } from '@/app/lib/icons';
 import { listFiles, writeFile, createDirectory, deleteFileOrFolder, renameFileOrFolder, revealInExplorer } from '@/app/lib/backend';
 import { useApp } from '@/app/providers';
@@ -543,14 +544,14 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
         </div>
       )}
 
-      {/* Custom Context Menu Overlay - VS Code Clone */}
-      {contextMenu && contextMenu.node && (
+      {/* Custom Context Menu Overlay - VS Code Clone using Portal */}
+      {contextMenu && contextMenu.node && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed z-[9999] w-72 bg-[#252526] border border-[#454545] rounded shadow-2xl py-1 text-[#cccccc] font-sans text-[13px] flex flex-col overflow-y-auto"
           style={{ 
-            left: Math.min(contextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 290 : 0),
+            left: Math.min(contextMenu.x, window.innerWidth - 290),
             maxHeight: '80vh',
-            ...(typeof window !== 'undefined' && contextMenu.y > window.innerHeight / 2
+            ...(contextMenu.y > window.innerHeight / 2
               ? { bottom: window.innerHeight - contextMenu.y }
               : { top: contextMenu.y }
             )
@@ -686,7 +687,8 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
               </button>
             </>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

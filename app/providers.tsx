@@ -44,6 +44,10 @@ interface AppContextType {
   setShowChat: (show: boolean) => void;
   pendingAutoFix: { stderr: string; filePath: string } | null;
   setPendingAutoFix: (fix: { stderr: string; filePath: string } | null) => void;
+
+  // Autonomous Agent Mode
+  autonomousMode: boolean;
+  setAutonomousMode: (enabled: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -59,6 +63,10 @@ export function Providers({ children }: { children: ReactNode }) {
   // Tab Management state
   const [openFiles, setOpenFiles] = useState<string[]>([]);
   const [dirtyFiles, setDirtyFiles] = useState<Record<string, boolean>>({});
+  const liveEditorRefs = useRef<Record<string, string>>({});
+
+  // AI & Modes
+  const [autonomousMode, setAutonomousMode] = useState(false);
   
   // Monaco isolated state refs
   const liveContentRef = useRef('');
@@ -260,6 +268,8 @@ export function Providers({ children }: { children: ReactNode }) {
         setShowChat,
         pendingAutoFix,
         setPendingAutoFix,
+        autonomousMode,
+        setAutonomousMode
       }}
     >
       {children}

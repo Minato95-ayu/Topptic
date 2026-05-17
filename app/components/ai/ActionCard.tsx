@@ -20,7 +20,7 @@ interface ActionCardProps {
 }
 
 export function ActionCard({ payload }: ActionCardProps) {
-  const { openFile, selectedFilePath } = useApp();
+  const { openFile, selectedFilePath, autonomousMode } = useApp();
   const [status, setStatus] = useState<'idle' | 'executing' | 'success' | 'rejected' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [showCode, setShowCode] = useState(false);
@@ -38,6 +38,7 @@ export function ActionCard({ payload }: ActionCardProps) {
   }, [showCode, tool, parameters.path]);
 
   const handleApprove = async () => {
+    if (status !== 'idle') return;
     setStatus('executing');
     setErrorMessage('');
     try {
@@ -80,6 +81,12 @@ export function ActionCard({ payload }: ActionCardProps) {
       setStatus('error');
     }
   };
+
+  useEffect(() => {
+    if (autonomousMode && status === 'idle') {
+      handleApprove();
+    }
+  }, [autonomousMode, status]);
 
   const handleReject = () => {
     setStatus('rejected');

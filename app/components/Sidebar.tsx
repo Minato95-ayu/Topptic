@@ -251,23 +251,36 @@ export default function Sidebar() {
         <div className="flex-1 flex flex-col overflow-hidden">
           {activeNav === 'projects' ? (
             <div className="flex-1 flex flex-col overflow-hidden">
-              <ProjectsList 
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                onSelectProject={(id) => {
-                  setSelectedProjectId(id);
-                }} 
-                onCreateProjectClick={() => {
-                  setSelectedProjectId(null);
-                }}
-              />
-              
-              {selectedProjectId && (
-                <div className="flex-1 border-t border-slate-800/50 mt-1 overflow-hidden">
-                  <FileExplorer 
-                    projectPath={projects.find(p => p.id === selectedProjectId)?.path}
-                    onFileSelect={openFile} 
-                  />
+              {!selectedProjectId ? (
+                <ProjectsList 
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  onSelectProject={(id) => {
+                    setSelectedProjectId(id);
+                  }} 
+                  onCreateProjectClick={() => {
+                    setSelectedProjectId(null);
+                  }}
+                />
+              ) : (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="px-4 py-2 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between shadow-sm">
+                    <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider truncate">
+                      {projects.find(p => p.id === selectedProjectId)?.name || 'WORKSPACE'}
+                    </span>
+                    <button 
+                      onClick={() => setSelectedProjectId(null)} 
+                      className="text-[10px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-hidden">
+                    <FileExplorer 
+                      projectPath={projects.find(p => p.id === selectedProjectId)?.path}
+                      onFileSelect={openFile} 
+                    />
+                  </div>
                 </div>
               )}
             </div>
