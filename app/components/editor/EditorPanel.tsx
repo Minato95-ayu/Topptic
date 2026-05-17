@@ -307,12 +307,7 @@ export function EditorPanel() {
               language={getLanguageFromPath(selectedFilePath)}
               theme="vs-dark"
               onChange={(value) => {
-                const val = value ?? '';
-                setLiveContent(val);
-                const nextDirty = val !== fileContent;
-                if (nextDirty !== isDirty) {
-                  setIsDirty(nextDirty);
-                }
+                setLiveContent(value ?? '');
               }}
               onMount={(editor, monaco) => {
                 editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
