@@ -180,7 +180,7 @@ export function ChatPanel() {
     {
       id: '1',
       role: 'assistant',
-      content: "Hello. I'm your Topptic AI Assistant, wired to the Rust backend when you run the Tauri app.",
+      content: "👋 **Topptic AI — Agentic Coding Engine**\n\nNamaste! Main aapka **Topptic AI** hoon — ek fully agentic coding assistant jo directly aapke workspace mein files likh sakta hai, terminal commands execute kar sakta hai, aur bugs auto-fix kar sakta hai.\n\n**Main ye sab kar sakta hoon:**\n* 📝 Files create/edit karna workspace mein\n* ⚡ Terminal commands run karna\n* 🐛 Bugs detect aur auto-fix karna\n* 🏗️ Poore projects scaffold karna\n\nBas mujhe batao kya banana hai!",
       timestamp: new Date().toISOString()
     }
   ]);
@@ -406,10 +406,10 @@ Respond in concise Hinglish if asked in Hinglish.`;
       <div className="px-4 py-3 bg-gradient-to-r from-blue-950/20 via-purple-950/20 to-slate-950/20 border-b border-purple-500/20 flex items-center justify-between shadow-lg">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-100 uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-300">Antigravity Clone</span>
-            <span className="bg-purple-500/25 border border-purple-500/40 text-purple-300 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest select-none animate-pulse">AGENT</span>
+            <span className="text-xs font-bold text-slate-100 uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">TOPPTIC AI</span>
+            <span className="bg-blue-500/25 border border-blue-500/40 text-blue-300 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest select-none animate-pulse">AGENT</span>
           </div>
-          <p className="text-[9px] text-slate-500 font-mono mt-0.5 select-none">Offline Model: {selectedModel || 'llama3.2'}</p>
+          <p className="text-[9px] text-slate-500 font-mono mt-0.5 select-none">Topptic Engine: {selectedModel || 'antigravity'}</p>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-ping" />
@@ -425,8 +425,8 @@ Respond in concise Hinglish if asked in Hinglish.`;
             <div key={message.id} className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
               {/* Agent Logo for Assistant */}
               {!isUser && (
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 border border-purple-500/30 flex items-center justify-center text-[10px] font-black text-white select-none shadow-md shadow-purple-500/10 shrink-0">
-                  A
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-600 border border-blue-500/30 flex items-center justify-center text-[10px] font-black text-white select-none shadow-md shadow-blue-500/10 shrink-0">
+                  T
                 </div>
               )}
               

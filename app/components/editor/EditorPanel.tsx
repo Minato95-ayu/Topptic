@@ -57,6 +57,7 @@ export function EditorPanel() {
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   const isDirty = selectedFilePath ? !!dirtyFiles[selectedFilePath] : false;
 
+  // Platform detection
   useEffect(() => {
     if (typeof navigator !== 'undefined') {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -66,6 +67,29 @@ export function EditorPanel() {
       else setExportPlatform('windows');
     }
   }, []);
+
+  // Ctrl+S / Cmd+S keyboard shortcut to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        if (selectedFilePath) handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedFilePath]);
+
+  // Auto-save every 30 seconds if file is dirty
+  useEffect(() => {
+    if (!isDirty || !selectedFilePath) return;
+    const interval = setInterval(() => {
+      handleSave();
+    }, 30000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDirty, selectedFilePath]);
 
   const handleFormat = async () => {
     if (!selectedFilePath) return;
