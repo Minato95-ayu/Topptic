@@ -203,14 +203,14 @@ export function FileExplorer({ onFileSelect }: FileExplorerProps) {
     <div className="py-2 flex flex-col h-full overflow-hidden select-none">
       <div className="px-4 py-2 flex items-center justify-between group">
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Workspace Explorer</span>
-        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1.5 text-slate-400">
           <button
             onClick={() => {
               setShowNewFolderInput(false);
               setShowNewFileInput(prev => !prev);
               setNewValueName('');
             }}
-            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200"
+            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
             title="New File"
           >
             <Icons.Plus className="w-3 h-3 text-blue-400" />
