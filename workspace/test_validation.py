@@ -83,7 +83,7 @@ trunc_latency_ms = (end_trunc - start_trunc) * 1000
 print(f"  - Original code length: {len(large_payload)} chars (5500 lines)")
 print(f"  - Truncated code length: {len(truncated_result)} chars")
 print(f"  - Truncation Execution Time: {trunc_latency_ms:.4f} ms")
-truncation_pass = len(truncated_result) <= (limit_char + 100) and "[Truncated by Topptic Engine]" in truncated_result
+truncation_pass = len(truncated_result) <= (limit_char + 100) and "[Truncated by Topptic Engine for low-RAM efficiency]" in truncated_result
 
 # PHASE 6: Self-Healing Error Code Parser Test
 print("\n[TEST 3] Simulating Self-Healing Error Parser Block Validation...")
@@ -141,5 +141,5 @@ print(f"  - 5000+ Lines Context Truncation:     {'PASS' if truncation_pass else 
 print(f"  - Self-Healing Action Code Parser:    {'PASS' if healing_pass else 'FAIL'}")
 print("-" * 60)
 overall_qa = fts5_pass and truncation_pass and healing_pass
-print(f"  🏆 OVERALL SYSTEM QA STATUS: {'[ STABLE & OPTIMIZED ]' if overall_qa else '[ STABILITY FAILURE ]'}")
+print(f"  [QA SCORE] OVERALL SYSTEM QA STATUS: {'[ STABLE & OPTIMIZED ]' if overall_qa else '[ STABILITY FAILURE ]'}")
 print("=" * 60)

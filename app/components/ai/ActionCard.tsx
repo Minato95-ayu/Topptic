@@ -1,9 +1,7 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icons } from '@/app/lib/icons';
 import { Button } from '@/app/components/common/Button';
-import { writeFile, executeTerminalCommand } from '@/app/lib/backend';
+import { writeFile, executeTerminalCommand, readFile } from '@/app/lib/backend';
 import { useApp } from '@/app/providers';
 
 export interface ActionPayload {
@@ -26,8 +24,18 @@ export function ActionCard({ payload }: ActionCardProps) {
   const [status, setStatus] = useState<'idle' | 'executing' | 'success' | 'rejected' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [showCode, setShowCode] = useState(false);
+  const [originalCode, setOriginalCode] = useState<string | null>(null);
 
   const { tool, parameters, rationale } = payload;
+
+  useEffect(() => {
+    if (showCode && tool === 'write_file' && parameters.path) {
+      // Proactively load the current original content from the disk
+      readFile({ path: parameters.path })
+        .then((code) => setOriginalCode(code))
+        .catch(() => setOriginalCode('')); // Default to empty string if file is new
+    }
+  }, [showCode, tool, parameters.path]);
 
   const handleApprove = async () => {
     setStatus('executing');
@@ -75,6 +83,74 @@ export function ActionCard({ payload }: ActionCardProps) {
 
   const handleReject = () => {
     setStatus('rejected');
+  };
+
+  // Helper logic to render a visual line-by-line diff
+  const renderVisualDiff = () => {
+    if (originalCode === null) {
+      return <div className="p-3 text-slate-500 animate-pulse text-[9px]">Loading original code diff...</div>;
+    }
+
+    const proposedLines = (parameters.content || '').split('\n');
+    
+    // If the file is brand new, render all lines as green insertions
+    if (originalCode === '') {
+      return (
+        <div className="p-3 font-mono text-[9px] text-slate-300 max-h-48 overflow-y-auto custom-scrollbar border-t border-slate-900 bg-slate-950/60">
+          <div className="text-blue-500 font-bold mb-1">[NEW FILE CREATION]</div>
+          {proposedLines.map((line, idx) => (
+            <div key={idx} className="bg-green-500/10 text-green-400 px-1 border-l-2 border-green-500 py-0.5">
+              + {line}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    const originalLines = originalCode.split('\n');
+    
+    return (
+      <div className="p-3 font-mono text-[9px] text-slate-300 max-h-48 overflow-y-auto custom-scrollbar border-t border-slate-900 bg-slate-950/60 leading-relaxed">
+        <div className="text-yellow-500 font-bold mb-1">[PROPOSED CODE DIFFERENTIAL PREVIEW]</div>
+        {/* Render a basic line-by-line comparison */}
+        {originalLines.map((line, idx) => {
+          const proposed = proposedLines[idx];
+          if (proposed === undefined) {
+            // Line was deleted
+            return (
+              <div key={`orig-${idx}`} className="bg-red-500/10 text-red-400 px-1 border-l-2 border-red-500 py-0.5 select-none line-through">
+                - {line}
+              </div>
+            );
+          } else if (line !== proposed) {
+            // Line was modified
+            return (
+              <div key={`mod-${idx}`} className="flex flex-col gap-0.5">
+                <div className="bg-red-500/10 text-red-400 px-1 border-l-2 border-red-500 py-0.5 line-through">
+                  - {line}
+                </div>
+                <div className="bg-green-500/10 text-green-400 px-1 border-l-2 border-green-500 py-0.5">
+                  + {proposed}
+                </div>
+              </div>
+            );
+          } else {
+            // Unchanged line
+            return (
+              <div key={`eq-${idx}`} className="text-slate-400 px-1 border-l-2 border-slate-800 py-0.5">
+                &nbsp;&nbsp;{line}
+              </div>
+            );
+          }
+        })}
+        {/* Render extra appended proposed lines */}
+        {proposedLines.slice(originalLines.length).map((line, idx) => (
+          <div key={`app-${idx}`} className="bg-green-500/10 text-green-400 px-1 border-l-2 border-green-500 py-0.5">
+            + {line}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // UI styling based on execution state
@@ -150,11 +226,7 @@ export function ActionCard({ payload }: ActionCardProps) {
             <span>{showCode ? 'Hide Proposed Changes' : 'View Proposed Changes'}</span>
             <Icons.ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showCode ? 'rotate-180' : ''}`} />
           </button>
-          {showCode && (
-            <pre className="p-3 text-[10px] font-mono overflow-x-auto text-slate-300 custom-scrollbar max-h-48 border-t border-slate-900">
-              <code>{parameters.content}</code>
-            </pre>
-          )}
+          {showCode && renderVisualDiff()}
         </div>
       )}
 
