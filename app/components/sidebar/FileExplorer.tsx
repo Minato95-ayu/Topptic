@@ -468,4 +468,3 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
     </div>
   );
 }
-}
