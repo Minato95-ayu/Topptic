@@ -418,6 +418,7 @@ Respond in concise Hinglish if asked in Hinglish.`;
         <div className="flex items-center justify-between text-[8px] font-bold uppercase tracking-wider text-slate-500 px-1 select-none">
           <span>Active Context: {selectedFilePath ? 'Monaco Buffer' : 'Global Workspace'}</span>
           <span>Offline helper enabled</span>
+        </div>
       </div>
     </div>
   );
