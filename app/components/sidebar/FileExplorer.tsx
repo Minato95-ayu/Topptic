@@ -216,10 +216,12 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
               setShowNewFileInput(prev => !prev);
               setNewValueName('');
             }}
-            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition-colors"
+            className="p-1 hover:bg-slate-800 rounded transition-colors"
             title="New File"
           >
-            <Icons.Plus className="w-3 h-3 text-blue-400" />
+            <svg className="w-3.5 h-3.5 text-slate-400 hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
           </button>
           <button
             onClick={() => {
@@ -227,10 +229,12 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
               setShowNewFolderInput(prev => !prev);
               setNewValueName('');
             }}
-            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200"
+            className="p-1 hover:bg-slate-800 rounded transition-colors"
             title="New Folder"
           >
-            <Icons.Folder className="w-3 h-3 text-yellow-500" />
+            <svg className="w-3.5 h-3.5 text-slate-400 hover:text-yellow-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1H4a2 2 0 01-2-2V6a2 2 0 012-2h4l2 2h4a2 2 0 012 2v2m-6 9h6" />
+            </svg>
           </button>
           <button 
             onClick={async () => {
@@ -295,7 +299,43 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
         style={{ minHeight: '200px' }}
       >
         {visibleNodes.length === 0 && (
-          <div className="px-6 py-2 text-xs text-slate-600 italic">Workspace is empty</div>
+          <div className="px-4 py-8 text-center flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+            <div className="p-3 bg-slate-900/50 rounded-full border border-slate-800/60 text-slate-600 shadow-inner">
+              <Icons.Folder className="w-8 h-8 opacity-40 text-slate-500" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-300 font-semibold">Workspace is empty</p>
+              <p className="text-[10px] text-slate-500 mt-1 max-w-[180px] leading-relaxed">
+                Create a file or folder inside this project to start writing code.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 w-full max-w-[160px] mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewFolderInput(false);
+                  setShowNewFileInput(true);
+                  setNewValueName('');
+                }}
+                className="w-full py-1.5 px-3 bg-blue-600/10 hover:bg-blue-600/20 text-blue-300 hover:text-blue-200 border border-blue-500/20 rounded-lg text-[11px] font-medium transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-900/20 active:scale-[0.98]"
+              >
+                <Icons.Plus className="w-3 h-3" />
+                <span>Create File</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewFileInput(false);
+                  setShowNewFolderInput(true);
+                  setNewValueName('');
+                }}
+                className="w-full py-1.5 px-3 bg-slate-800/40 hover:bg-slate-800/80 text-slate-300 hover:text-slate-200 border border-slate-700/30 rounded-lg text-[11px] font-medium transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+              >
+                <Icons.Folder className="w-3 h-3 text-slate-500" />
+                <span>Create Folder</span>
+              </button>
+            </div>
+          </div>
         )}
 
         <div style={{ height: totalHeight, width: '100%', position: 'relative' }}>
