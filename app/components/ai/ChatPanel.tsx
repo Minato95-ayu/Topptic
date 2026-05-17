@@ -284,33 +284,67 @@ Respond in concise Hinglish if asked in Hinglish.`;
   };
 
   return (
-    <div className="w-96 bg-slate-900/40 backdrop-blur-xl border-l border-slate-700/30 flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-700/30">
-        <h3 className="text-sm font-semibold text-slate-50">AI Assistant</h3>
-        <p className="text-[10px] text-slate-500 font-mono">Model: {selectedModel}</p>
+    <div className="w-96 bg-slate-950/80 backdrop-blur-2xl border-l border-purple-500/10 flex flex-col overflow-hidden animate-in slide-in-from-right duration-300">
+      {/* Header Bar */}
+      <div className="px-4 py-3 bg-gradient-to-r from-blue-950/20 via-purple-950/20 to-slate-950/20 border-b border-purple-500/20 flex items-center justify-between shadow-lg">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-100 uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-300">Antigravity Clone</span>
+            <span className="bg-purple-500/25 border border-purple-500/40 text-purple-300 px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest select-none animate-pulse">AGENT</span>
+          </div>
+          <p className="text-[9px] text-slate-500 font-mono mt-0.5 select-none">Offline Model: {selectedModel || 'llama3.2'}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-ping" />
+          <span className="text-[9px] font-bold text-purple-400/90 uppercase tracking-wider select-none">Active</span>
+        </div>
       </div>
 
       {/* Messages Stream */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-4">
-        {messages.map((message) => (
-          <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div
-              className={`max-w-xs md:max-w-sm rounded-lg px-3 py-2 text-xs leading-relaxed ${
-                message.role === 'user'
-                  ? 'bg-blue-500/30 text-blue-100 border border-blue-500/50 shadow-lg shadow-blue-500/5'
-                  : 'bg-slate-800/50 text-slate-300 border border-slate-700/50 w-full'
-              }`}
-            >
-              <MessageContent content={message.content} onApply={handleApplyCode} />
+        {messages.map((message) => {
+          const isUser = message.role === 'user';
+          return (
+            <div key={message.id} className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-200`}>
+              {/* Agent Logo for Assistant */}
+              {!isUser && (
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 border border-purple-500/30 flex items-center justify-center text-[10px] font-black text-white select-none shadow-md shadow-purple-500/10 shrink-0">
+                  A
+                </div>
+              )}
+              
+              <div
+                className={`max-w-[280px] rounded-2xl px-3.5 py-2.5 text-[11px] leading-relaxed shadow-lg ${
+                  isUser
+                    ? 'bg-blue-600/10 text-blue-100 border border-blue-500/30 rounded-tr-none shadow-blue-500/5'
+                    : 'bg-slate-900/60 text-slate-300 border border-purple-500/10 rounded-tl-none w-full shadow-slate-950/40'
+                }`}
+              >
+                <MessageContent content={message.content} onApply={handleApplyCode} />
+              </div>
+
+              {/* User Initials for User */}
+              {isUser && (
+                <div className="w-6 h-6 rounded-lg bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-[9px] font-bold text-blue-300 select-none shrink-0">
+                  U
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
+        
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="flex gap-1 px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-lg">
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-100" />
-              <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce delay-200" />
+          <div className="flex gap-2.5 justify-start items-center animate-pulse">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-[10px] font-black text-white shrink-0">
+              A
+            </div>
+            <div className="flex flex-col gap-1 px-3 py-2 bg-slate-900/60 border border-purple-500/10 rounded-xl rounded-tl-none">
+              <span className="text-[9px] font-semibold text-purple-400 uppercase tracking-widest select-none">Thinking...</span>
+              <div className="flex gap-1 items-center mt-1">
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" />
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce delay-100" />
+                <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce delay-200" />
+              </div>
             </div>
           </div>
         )}
@@ -318,14 +352,14 @@ Respond in concise Hinglish if asked in Hinglish.`;
       </div>
 
       {/* Action Presets and Chat Inputs */}
-      <div className="border-t border-slate-700/30 p-4 space-y-3">
+      <div className="border-t border-purple-500/10 bg-slate-950/40 p-4 space-y-3">
         {/* Preset AI Prescription pills */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar scrollbar-none select-none">
           <button
             type="button"
             onClick={() => handleTriggerPreset("Fix any syntax errors, logically incorrect statements, or typescript failures in my code. Return the whole corrected code block.")}
             disabled={!selectedFilePath || isLoading}
-            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 hover:border-red-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
           >
             <Icons.ShieldAlert className="w-3 h-3" /> Fix Bugs
           </button>
@@ -334,7 +368,7 @@ Respond in concise Hinglish if asked in Hinglish.`;
             type="button"
             onClick={() => handleTriggerPreset("Optimize the efficiency, runtime performance, complexity parameters, and caching features of this code. Return the whole optimized code block.")}
             disabled={!selectedFilePath || isLoading}
-            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 hover:border-green-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/25 hover:border-green-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
           >
             <Icons.Zap className="w-3 h-3" /> Optimize
           </button>
@@ -343,7 +377,7 @@ Respond in concise Hinglish if asked in Hinglish.`;
             type="button"
             onClick={() => handleTriggerPreset("Draft comprehensive and highly performant unit tests targeting key segments, edge cases, and interfaces in this code. Return the whole tests code block.")}
             disabled={!selectedFilePath || isLoading}
-            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 hover:border-blue-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/25 hover:border-blue-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
           >
             <Icons.Brain className="w-3 h-3" /> Write Tests
           </button>
@@ -352,7 +386,7 @@ Respond in concise Hinglish if asked in Hinglish.`;
             type="button"
             onClick={() => handleTriggerPreset("Document all major workflow branches, function statements, types, and imports in this file using elegant TSX comment structures. Return the whole annotated code block.")}
             disabled={!selectedFilePath || isLoading}
-            className="text-[9px] font-bold uppercase tracking-wider whitespace-nowrap bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 hover:border-purple-500/30 px-2.5 py-1 rounded-md transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none"
+            className="text-[8.5px] font-bold uppercase tracking-widest whitespace-nowrap bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/25 hover:border-purple-500/40 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1 disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.97]"
           >
             <Icons.FileText className="w-3 h-3" /> Document
           </button>
@@ -369,13 +403,21 @@ Respond in concise Hinglish if asked in Hinglish.`;
             }}
             disabled={isLoading}
             placeholder={selectedFilePath ? `Ask about ${selectedFilePath.split('/').pop()}...` : "Ask me anything..."}
-            className="input-base flex-1 text-xs py-2 bg-slate-950/40"
+            className="flex-1 text-xs px-3.5 py-2.5 bg-slate-950/60 hover:bg-slate-950/90 border border-slate-800 hover:border-slate-700/50 focus:border-purple-500/50 rounded-xl text-slate-200 placeholder-slate-500 transition-all outline-none focus:ring-1 focus:ring-purple-500/20"
           />
-          <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading} className="px-3">
-            <Icons.Send className="w-4 h-4" />
+          <Button 
+            onClick={handleSendMessage} 
+            disabled={!input.trim() || isLoading} 
+            className="px-3.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl shadow-lg hover:shadow-purple-500/20 active:scale-[0.98] border-none"
+          >
+            <Icons.Send className="w-3.5 h-3.5" />
           </Button>
         </div>
-        <p className="text-[10px] text-slate-500 text-center select-none font-medium">Context: {selectedFilePath ? 'Active Monaco Buffer' : 'None'}</p>
+        
+        {/* Footer info bar */}
+        <div className="flex items-center justify-between text-[8px] font-bold uppercase tracking-wider text-slate-500 px-1 select-none">
+          <span>Active Context: {selectedFilePath ? 'Monaco Buffer' : 'Global Workspace'}</span>
+          <span>Offline helper enabled</span>
       </div>
     </div>
   );
