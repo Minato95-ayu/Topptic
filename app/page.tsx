@@ -6,6 +6,7 @@ import { EditorPanel } from '@/app/components/editor/EditorPanel';
 import { BuildPanel } from '@/app/components/build/BuildPanel';
 import { SettingsPanel } from '@/app/components/settings/SettingsPanel';
 import { Dashboard } from '@/app/components/dashboard/Dashboard';
+import { WebPreviewPanel } from '@/app/components/preview/WebPreviewPanel';
 import { Icons } from '@/app/lib/icons';
 import { useApp } from '@/app/providers';
 
@@ -16,6 +17,8 @@ export default function Home() {
     switch (activeNav) {
       case 'build':
         return <BuildPanel />;
+      case 'preview':
+        return <WebPreviewPanel />;
       case 'settings':
         return <SettingsPanel />;
       case 'ai-roadmap':

@@ -559,7 +559,7 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
           onClick={(e) => e.stopPropagation()}
         >
           {/* Group 1: Create */}
-          {contextMenu.node.is_dir && (
+          {contextMenu.node.isDirectory && (
             <>
               <button
                 onClick={() => {
@@ -593,7 +593,7 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
             <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Shift+Alt+R</span>
           </button>
           
-          {contextMenu.node.is_dir && (
+          {contextMenu.node.isDirectory && (
             <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
               <span>Open in Integrated Terminal</span>
             </button>
@@ -602,7 +602,7 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
           <div className="h-[1px] bg-[#454545] my-1 mx-2" />
 
           {/* Group 2: AI & Search */}
-          {contextMenu.node.is_dir && (
+          {contextMenu.node.isDirectory && (
             <>
               <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">
                 <span>Find in Folder...</span>
@@ -679,7 +679,7 @@ export function FileExplorer({ onFileSelect, projectPath }: FileExplorerProps) {
             <span className="text-[11px] text-[#858585] group-hover:text-slate-300 tracking-wider">Del</span>
           </button>
 
-          {contextMenu.node.is_dir && (
+          {contextMenu.node.isDirectory && (
             <>
               <div className="h-[1px] bg-[#454545] my-1 mx-2" />
               <button className="w-full text-left px-6 py-1 hover:bg-[#04395e] hover:text-white transition-colors flex items-center justify-between group">

@@ -144,6 +144,15 @@ export default function Sidebar() {
       )
     },
     {
+      id: 'preview',
+      label: 'Web Preview',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
       id: 'ai-roadmap',
       label: 'AI Roadmap',
       icon: (
@@ -220,7 +229,7 @@ export default function Sidebar() {
         {/* Panel Header */}
         <div className="px-4 py-3 border-b border-slate-800/40 flex items-center justify-between select-none">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            {activeNav === 'projects' ? 'Explorer' : activeNav === 'git' ? 'Source Control' : activeNav === 'build' ? 'Run & Build' : activeNav === 'settings' ? 'Settings' : 'Roadmap'}
+            {activeNav === 'projects' ? 'Explorer' : activeNav === 'git' ? 'Source Control' : activeNav === 'build' ? 'Run & Build' : activeNav === 'preview' ? 'Web Preview' : activeNav === 'settings' ? 'Settings' : 'Roadmap'}
           </span>
           
           {activeNav === 'projects' && (
@@ -277,7 +286,7 @@ export default function Sidebar() {
                   </div>
                   <div className="flex-1 overflow-hidden">
                     <FileExplorer 
-                      projectPath={projects.find(p => p.id === selectedProjectId)?.path}
+                      projectPath={projects.find(p => p.id === selectedProjectId)?.path ?? undefined}
                       onFileSelect={openFile} 
                     />
                   </div>
@@ -339,6 +348,7 @@ export default function Sidebar() {
           ) : (
             <div className="flex-1 p-4 text-xs text-slate-500 leading-relaxed italic">
               {activeNav === 'build' && "Compile log views are open on the main screen."}
+              {activeNav === 'preview' && "Visual preview with auto-healing is active."}
               {activeNav === 'settings' && "Manage editor parameters on the main screen."}
               {activeNav === 'ai-roadmap' && "Off-line fine-tuning scripts are active."}
             </div>
