@@ -8,6 +8,17 @@ import type { AIChatMessage } from '@/app/lib/types';
 import { useApp } from '@/app/providers';
 import { ActionCard, type ActionPayload } from './ActionCard';
 
+const generateUUID = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+};
+
 const tryParseSelfHealingAction = (rawText: string): ActionPayload => {
   const cleaned = rawText.trim();
   
@@ -217,7 +228,7 @@ export function ChatPanel() {
     if (!content || isLoading) return;
 
     const userMessage: AIChatMessage = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       role: 'user',
       content,
       timestamp: new Date().toISOString()
@@ -227,7 +238,7 @@ export function ChatPanel() {
     setInput('');
     setIsLoading(true);
 
-    const assistantMessageId = crypto.randomUUID();
+    const assistantMessageId = generateUUID();
     const newAssistantMessage: AIChatMessage = {
       id: assistantMessageId,
       role: 'assistant',
@@ -541,13 +552,13 @@ Respond in concise Hinglish if asked in Hinglish.`;
               setMessages((prev) => [
                 ...prev,
                 {
-                  id: crypto.randomUUID(),
+                  id: generateUUID(),
                   role: 'user',
                   content: 'Start automated Vertex AI reinforcement training loop.',
                   timestamp: new Date().toISOString()
                 },
                 {
-                  id: crypto.randomUUID(),
+                  id: generateUUID(),
                   role: 'assistant',
                   content: '🤖 [Vertex AI Engine] Local training loop initialized. Redirecting system logs directly to the live terminal panel below...',
                   timestamp: new Date().toISOString()
@@ -560,7 +571,7 @@ Respond in concise Hinglish if asked in Hinglish.`;
                 setMessages((prev) => [
                   ...prev,
                   {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     role: 'assistant',
                     content: `❌ Vertex AI pipeline error: ${String(err)}`,
                     timestamp: new Date().toISOString()
